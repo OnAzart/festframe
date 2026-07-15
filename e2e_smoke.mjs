@@ -99,12 +99,16 @@ const wallpaperSafeArea = await page.locator('.iphone-export.is-previewing .ipho
       const label = set.querySelector('span')
       return label && getComputedStyle(label).display !== 'none' && Boolean(label.textContent?.trim())
     }),
-    priorityBordersVisible: sets.every((set) => Number.parseFloat(getComputedStyle(set).borderTopWidth) >= 2),
+    priorityMarkersVisible: sets.every((set) => {
+      const style = getComputedStyle(set)
+      return Number.parseFloat(style.borderLeftWidth) >= 4 && Number.parseFloat(style.borderTopWidth) === 0
+    }),
+    priorityMarkerColors: [...new Set(sets.map((set) => getComputedStyle(set).borderLeftColor))],
     priorityLegend: [...card.querySelectorAll('.wallpaper-priority-legend span')].map((item) => item.textContent?.trim()),
   }
 })
 if (!wallpaperSafeArea || wallpaperSafeArea.timelineBottomRatio > 0.76 || !wallpaperSafeArea.allSetsVisible) throw new Error('Wallpaper schedule leaves the iPhone safe area')
-if (!wallpaperSafeArea.stageLabelsVisible || !wallpaperSafeArea.priorityBordersVisible) throw new Error('Wallpaper is missing stage or priority signals')
+if (!wallpaperSafeArea.stageLabelsVisible || !wallpaperSafeArea.priorityMarkersVisible || wallpaperSafeArea.priorityMarkerColors.length < 3) throw new Error('Wallpaper is missing stage or priority signals')
 if (wallpaperSafeArea.priorityLegend.join(',') !== 'Must,Want,Maybe') throw new Error('Wallpaper priority legend is missing')
 
 let downloadPromise = page.waitForEvent('download')
@@ -125,8 +129,7 @@ await page.screenshot({ path: `${output}/desktop.png`, fullPage: true })
 const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 } })
 const mobilePage = await mobileContext.newPage()
 await mobilePage.goto(baseUrl, { waitUntil: 'networkidle' })
-await mobilePage.getByLabel('Your email').fill('mobile@example.com')
-await mobilePage.getByRole('button', { name: 'Plan My Fest' }).click()
+await mobilePage.getByRole('button', { name: 'Skip for now' }).click()
 await mobilePage.getByRole('heading', { name: 'Build your day' }).waitFor()
 const mobileLegend = mobilePage.locator('.priority-legend')
 for (const label of ['Must', 'Want', 'Maybe']) {

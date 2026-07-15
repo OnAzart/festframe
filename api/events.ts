@@ -5,6 +5,7 @@ import { neon } from '@neondatabase/serverless'
 const allowedEvents = new Set([
   'planner_opened',
   'signup_completed',
+  'email_submitted',
   'first_artist_selected',
   'five_artists_selected',
   'timeline_viewed',

@@ -1,6 +1,6 @@
 # FestFrame Deployment
 
-FestFrame is a Vite app deployed to Vercel with serverless API routes, Neon analytics storage, and a separate Neon Auth resource for verified email profiles and cloud-saved plans.
+FestFrame is a Vite app deployed to Vercel with serverless API routes, Neon analytics storage, and a separate Neon database for optional email profiles and country codes.
 
 ## Current Production Setup
 
@@ -8,10 +8,10 @@ FestFrame is a Vite app deployed to Vercel with serverless API routes, Neon anal
 - Production URL: `https://festframe.vercel.app`
 - GitHub: `OnAzart/festframe`
 - Analytics database: `festframe-db`
-- Auth and plans database: `neon-bisque-zebra`, connected with the `AUTHDB_` prefix
+- Profiles database: `neon-bisque-zebra`, connected with the `AUTHDB_` prefix
 - Support: `https://ko-fi.com/onazart`
 
-Vercel already supplies `DATABASE_URL`, `AUTHDB_DATABASE_URL`, `AUTHDB_NEON_AUTH_BASE_URL`, and `AUTHDB_VITE_NEON_AUTH_URL` in Production, Preview, and Development.
+Vercel already supplies `DATABASE_URL` and `AUTHDB_DATABASE_URL` in Production, Preview, and Development. The older Neon Auth variables are reserved for a future verified-sync feature and are not used by the current frontend.
 
 ## Verify Locally
 
@@ -33,7 +33,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/schema.sql
 psql "$AUTHDB_DATABASE_URL" -v ON_ERROR_STOP=1 -f db/auth-schema.sql
 ```
 
-`db/schema.sql` owns anonymous product events and country code. `db/auth-schema.sql` owns user profiles and saved plans. Neon Auth itself owns verified email identity and sessions.
+`db/schema.sql` owns anonymous product events and country code. `db/auth-schema.sql` owns optional email leads and keeps the reserved profile/plan tables for a future verified sync feature. Current routes stay in local storage.
 
 ## Deploy
 
@@ -50,14 +50,15 @@ npx vercel --prod
 
 ## Public Launch Checklist
 
-- [x] Verified email sign-in and cross-device cloud plan storage.
+- [x] Optional email capture with a no-email skip path.
+- [x] Local festival-plan storage on the user's device.
 - [x] Country code collection without storing raw IP.
 - [x] Ko-fi support destination.
 - [x] Calendar, PDF, and iPhone 17/17 Pro wallpaper exports.
 - [x] Automated desktop/mobile and wallpaper safe-area tests.
 - [ ] Publish a Privacy Policy with the operator's legal name or trading identity and contact email.
-- [ ] Add account/plan deletion or a documented deletion-request channel.
-- [ ] Test the email code on production with a real inbox.
+- [ ] Add a documented email-data deletion request channel.
+- [ ] Add verified sign-in only when cross-device plan restore is introduced.
 - [ ] Test PNG and ICS output on real iPhone and Android devices.
 - [ ] Recheck W1/W2 timetable snapshots against official updates.
 - [ ] Add consent UI before loading Meta Pixel or other advertising cookies.

@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS product_events (
   event_name text NOT NULL CHECK (event_name IN (
     'planner_opened',
     'signup_completed',
+    'email_submitted',
     'first_artist_selected',
     'five_artists_selected',
     'timeline_viewed',
@@ -22,6 +23,7 @@ ALTER TABLE product_events DROP CONSTRAINT IF EXISTS product_events_event_name_c
 ALTER TABLE product_events ADD CONSTRAINT product_events_event_name_check CHECK (event_name IN (
   'planner_opened',
   'signup_completed',
+  'email_submitted',
   'first_artist_selected',
   'five_artists_selected',
   'timeline_viewed',

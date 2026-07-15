@@ -15,5 +15,15 @@ CREATE TABLE IF NOT EXISTS saved_plans (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS festframe_leads (
+  visitor_id uuid PRIMARY KEY,
+  email text NOT NULL,
+  country_code char(2) CHECK (country_code IS NULL OR country_code ~ '^[A-Z]{2}$'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS festframe_profiles_country_code_idx ON festframe_profiles (country_code);
 CREATE INDEX IF NOT EXISTS saved_plans_updated_at_idx ON saved_plans (updated_at DESC);
+CREATE INDEX IF NOT EXISTS festframe_leads_email_idx ON festframe_leads (lower(email));
+CREATE INDEX IF NOT EXISTS festframe_leads_country_code_idx ON festframe_leads (country_code);

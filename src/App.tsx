@@ -18,12 +18,11 @@ import {
   X,
 } from 'lucide-react'
 import './App.css'
-import { authBypassEnabled, authClient } from './auth'
 
 type Priority = 'critical' | 'want' | 'like'
 type WallpaperTheme = 'consciousness-desert' | 'botanical-consciousness'
 type ViewMode = 'board' | 'timeline' | 'schedule'
-type AnalyticsEvent = 'planner_opened' | 'signup_completed' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'support_opened'
+type AnalyticsEvent = 'planner_opened' | 'signup_completed' | 'email_submitted' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'support_opened'
 
 type Artist = {
   id: string
@@ -85,6 +84,7 @@ function stageColor(stageName: string) {
 
 const storageKeys = {
   profile: 'daymark-profile',
+  leadId: 'festframe-lead-id',
   priorities: 'daymark-priorities',
   weekend: 'daymark-weekend',
   wallpaperTheme: 'daymark-wallpaper-theme',
@@ -203,13 +203,8 @@ function PriorityPicker({
 }
 
 function App() {
-  const authSession = authClient.useSession()
-  const [bypassProfile, setBypassProfile] = useState<string | null>(() => authBypassEnabled ? localStorage.getItem(storageKeys.profile) : null)
+  const [localProfile, setLocalProfile] = useState<string | null>(() => localStorage.getItem(storageKeys.profile))
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState('')
-  const [authStep, setAuthStep] = useState<'email' | 'otp'>('email')
-  const [authPending, setAuthPending] = useState(false)
-  const [cloudHydrated, setCloudHydrated] = useState(false)
   const [weekend, setWeekend] = useState<'w1' | 'w2'>(() => (localStorage.getItem(storageKeys.weekend) as 'w1' | 'w2') || 'w1')
   const [data, setData] = useState<FestivalData | null>(null)
   const [priorities, setPriorities] = useState<Record<string, Priority>>(() => {
@@ -231,9 +226,7 @@ function App() {
   const [toast, setToast] = useState('')
   const exportCardRef = useRef<HTMLDivElement>(null)
   const hasTrackedOpenRef = useRef(false)
-  const profile = authBypassEnabled ? bypassProfile : authSession.data?.user.email || null
-  const authToken = authBypassEnabled ? null : authSession.data?.session.token || null
-  const authUserId = authBypassEnabled ? bypassProfile : authSession.data?.user.id || null
+  const profile = localProfile
 
   useEffect(() => {
     const controller = new AbortController()
@@ -260,53 +253,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem(storageKeys.wallpaperTheme, wallpaperTheme)
   }, [wallpaperTheme])
-
-  useEffect(() => {
-    if (!authToken || !authUserId) {
-      setCloudHydrated(false)
-      return
-    }
-
-    const controller = new AbortController()
-    setCloudHydrated(false)
-    fetch('/api/plans', {
-      headers: { Authorization: `Bearer ${authToken}` },
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Cloud plan could not be loaded')
-        return response.json() as Promise<{ plan: { priorities: Record<string, Priority>; weekend: 'w1' | 'w2'; wallpaperTheme: WallpaperTheme } | null }>
-      })
-      .then(({ plan }) => {
-        if (plan) {
-          setPriorities(plan.priorities)
-          setWeekend(plan.weekend)
-          setWallpaperTheme(plan.wallpaperTheme)
-        }
-        setCloudHydrated(true)
-      })
-      .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          setToast('Your local plan is available. Cloud sync will retry shortly.')
-          setCloudHydrated(true)
-        }
-      })
-    return () => controller.abort()
-  }, [authToken, authUserId])
-
-  useEffect(() => {
-    if (!authToken || !cloudHydrated) return
-    const timer = window.setTimeout(() => {
-      void fetch('/api/plans', {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priorities, weekend, wallpaperTheme }),
-      }).then((response) => {
-        if (!response.ok) throw new Error('Cloud save failed')
-      }).catch(() => setToast('Plan saved on this device. Cloud sync will retry.'))
-    }, 650)
-    return () => window.clearTimeout(timer)
-  }, [authToken, cloudHydrated, priorities, weekend, wallpaperTheme])
 
   useEffect(() => {
     if (!toast) return
@@ -541,62 +487,36 @@ function App() {
     }
   }
 
-  async function requestLoginCode(event: React.FormEvent) {
+  function enterPlanner(event: React.FormEvent) {
     event.preventDefault()
     const normalized = email.trim().toLowerCase()
     if (!/^\S+@\S+\.\S+$/.test(normalized)) {
       setToast('Enter a valid email to continue.')
       return
     }
-    if (authBypassEnabled) {
-      localStorage.setItem(storageKeys.profile, normalized)
-      setBypassProfile(normalized)
-      return
+    let visitorId = localStorage.getItem(storageKeys.leadId)
+    if (!visitorId) {
+      visitorId = crypto.randomUUID()
+      localStorage.setItem(storageKeys.leadId, visitorId)
     }
-
-    setAuthPending(true)
-    try {
-      const result = await authClient.emailOtp.sendVerificationOtp({ email: normalized, type: 'sign-in' })
-      if (result.error) throw new Error(result.error.message || 'Code could not be sent')
-      setEmail(normalized)
-      setAuthStep('otp')
-      setToast('Check your inbox for the 6-digit FestFrame code.')
-    } catch (error) {
-      setToast(error instanceof Error ? error.message : 'Code could not be sent. Please try again.')
-    } finally {
-      setAuthPending(false)
-    }
+    localStorage.setItem(storageKeys.profile, normalized)
+    setLocalProfile(normalized)
+    trackEvent('email_submitted')
+    void fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visitorId, email: normalized }),
+    }).catch(() => undefined)
   }
 
-  async function verifyLoginCode(event: React.FormEvent) {
-    event.preventDefault()
-    if (!/^\d{6}$/.test(otp.trim())) {
-      setToast('Enter the 6-digit code from your email.')
-      return
-    }
-
-    setAuthPending(true)
-    try {
-      const result = await authClient.signIn.emailOtp({ email, otp: otp.trim() })
-      if (result.error) throw new Error(result.error.message || 'The code is not valid')
-      await authClient.getSession({ query: { disableCookieCache: true } })
-      trackEvent('signup_completed')
-      setToast('Signed in. Your route now syncs across devices.')
-    } catch (error) {
-      setToast(error instanceof Error ? error.message : 'The code is not valid. Please try again.')
-    } finally {
-      setAuthPending(false)
-    }
+  function enterAsGuest() {
+    localStorage.setItem(storageKeys.profile, 'guest')
+    setLocalProfile('guest')
   }
 
-  async function logout() {
-    if (authBypassEnabled) {
-      localStorage.removeItem(storageKeys.profile)
-      setBypassProfile(null)
-      return
-    }
-    await authClient.signOut()
-    setCloudHydrated(false)
+  function logout() {
+    localStorage.removeItem(storageKeys.profile)
+    setLocalProfile(null)
   }
 
   function exportCalendar() {
@@ -733,18 +653,14 @@ function App() {
           <p className="eyebrow">FESTFRAME · UNOFFICIAL FESTIVAL PLANNER</p>
           <h1>Plan Tomorrowland<br />Belgium 2026.</h1>
           <p className="login-copy"><strong>Your festival day, made for your lock screen.</strong><span>Choose the sets that matter, see the overlaps, and take a clear daily route with you.</span></p>
-          <form onSubmit={authStep === 'email' ? requestLoginCode : verifyLoginCode} className="login-form">
-            {authStep === 'email' ? <>
-              <label htmlFor="email">Your email</label>
-              <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" type="email" autoComplete="email" disabled={authPending} />
-            </> : <>
-              <div className="otp-heading"><label htmlFor="otp">6-digit code</label><button type="button" onClick={() => { setAuthStep('email'); setOtp('') }}>Change email</button></div>
-              <input id="otp" className="otp-input" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" type="text" inputMode="numeric" autoComplete="one-time-code" autoFocus disabled={authPending} />
-            </>}
-            <button type="submit" className="primary-button" disabled={authPending}>{authPending ? 'Please wait…' : authStep === 'email' ? 'Plan My Fest' : 'Verify & Plan'} <ChevronRight size={18} /></button>
+          <form onSubmit={enterPlanner} className="login-form">
+            <label htmlFor="email">Your email <small>optional</small></label>
+            <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" type="email" autoComplete="email" />
+            <button type="submit" className="primary-button">Plan My Fest <ChevronRight size={18} /></button>
+            <button type="button" className="skip-button" onClick={enterAsGuest}>Skip for now</button>
           </form>
-          <div className="login-note"><Check size={15} /> One-time code · your route syncs across devices</div>
-          <p className="login-privacy">We use your email only to save and restore your festival plan. No marketing emails.</p>
+          <div className="login-note"><Check size={15} /> No password · your plan stays on this device</div>
+          <p className="login-privacy">Email is optional. We store it with your FestFrame profile; no marketing emails without separate consent.</p>
         </section>
         {toast && <div className="toast">{toast}</div>}
       </main>
@@ -756,7 +672,7 @@ function App() {
       <header className="topbar">
         <div className="wordmark compact"><span>FEST</span><i />FRAME</div>
         <div className="flow-steps" aria-label="Planning flow">
-          <span className="done"><Check size={13} /> Sign in</span><b />
+          <span className="done"><Check size={13} /> Started</span><b />
           <span className="current">2. Build</span><b />
           <span>3. Export</span>
         </div>

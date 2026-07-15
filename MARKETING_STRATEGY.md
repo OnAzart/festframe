@@ -156,7 +156,7 @@ Instrument these events before relying on traffic numbers:
 | Referral | Native share used | Is the wallpaper creating distribution? |
 | Revenue | Support link opened/completed | Is there willingness to pay? |
 
-Keep the first-party Neon event stream as the source of truth. Verified email profiles and saved plans now live in Neon; do not send email addresses or artist choices to advertising tools.
+Keep the first-party Neon event stream as the source of truth. Optional email profiles and country codes live in Neon while festival routes stay on-device; do not send email addresses or artist choices to advertising tools.
 
 ## 10. After Validation
 
@@ -194,7 +194,7 @@ For FestFrame, adapt that sequence conservatively:
 - Recruit 5-10 Tomorrowland preparation creators and group admins.
 - Give each one a tagged URL, for example `?utm_source=instagram&utm_medium=creator&utm_campaign=w1_launch&utm_content=creator_name`.
 - Ask for a real route-build video or wallpaper share, not a generic endorsement.
-- Measure verified sign-in, meaningful plan, and wallpaper export by creator.
+- Measure optional email submission, meaningful plan, and wallpaper export by creator.
 
 ### Phase B: Train only on real value
 
@@ -203,7 +203,7 @@ Do not optimize Meta toward page views. The useful audience is people who comple
 | FestFrame action | First-party event | Meta event after consent | Optimization use |
 |---|---|---|---|
 | Planner loaded | `planner_opened` | `PageView` | Diagnostics only |
-| Email code verified | `signup_completed` | `CompleteRegistration` | Account conversion |
+| Optional email submitted | `email_submitted` | None initially | Lead intent without marketing consent |
 | First artist saved | `first_artist_selected` | `AddToWishlist` | Early activation |
 | Five artists saved | `five_artists_selected` | `Lead` | Meaningful plan |
 | Wallpaper downloaded | `wallpaper_exported` | `WallpaperExported` custom event | Core value/custom audience |
