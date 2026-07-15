@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
 
 const output = '/tmp/daymark-e2e'
-const baseUrl = 'http://127.0.0.1:5173'
+const baseUrl = 'http://127.0.0.1:4178'
 let ownedServer
 
 async function isServerReady() {
@@ -16,7 +16,10 @@ async function isServerReady() {
 }
 
 if (!(await isServerReady())) {
-  ownedServer = spawn(process.execPath, ['./node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '5173'], { stdio: 'ignore' })
+  ownedServer = spawn(process.execPath, ['./node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4178'], {
+    stdio: 'ignore',
+    env: { ...process.env, VITE_E2E_AUTH_BYPASS: 'true' },
+  })
   for (let attempt = 0; attempt < 60 && !(await isServerReady()); attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 250))
   }
@@ -97,10 +100,12 @@ const wallpaperSafeArea = await page.locator('.iphone-export.is-previewing .ipho
       return label && getComputedStyle(label).display !== 'none' && Boolean(label.textContent?.trim())
     }),
     priorityBordersVisible: sets.every((set) => Number.parseFloat(getComputedStyle(set).borderTopWidth) >= 2),
+    priorityLegend: [...card.querySelectorAll('.wallpaper-priority-legend span')].map((item) => item.textContent?.trim()),
   }
 })
 if (!wallpaperSafeArea || wallpaperSafeArea.timelineBottomRatio > 0.76 || !wallpaperSafeArea.allSetsVisible) throw new Error('Wallpaper schedule leaves the iPhone safe area')
 if (!wallpaperSafeArea.stageLabelsVisible || !wallpaperSafeArea.priorityBordersVisible) throw new Error('Wallpaper is missing stage or priority signals')
+if (wallpaperSafeArea.priorityLegend.join(',') !== 'Must,Want,Maybe') throw new Error('Wallpaper priority legend is missing')
 
 let downloadPromise = page.waitForEvent('download')
 await page.getByRole('button', { name: 'Calendar file Google, Apple & Outlook' }).click()

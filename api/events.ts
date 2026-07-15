@@ -4,6 +4,7 @@ import { neon } from '@neondatabase/serverless'
 
 const allowedEvents = new Set([
   'planner_opened',
+  'signup_completed',
   'first_artist_selected',
   'five_artists_selected',
   'timeline_viewed',
@@ -25,6 +26,11 @@ function json(body: unknown, status = 200) {
 
 function isUuid(value: unknown): value is string {
   return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
+function countryCode(request: Request) {
+  const value = request.headers.get('x-vercel-ip-country')?.toUpperCase()
+  return value && /^[A-Z]{2}$/.test(value) ? value : null
 }
 
 export default {
@@ -52,8 +58,8 @@ export default {
 
     try {
       const sql = neon(process.env.DATABASE_URL)
-      await sql`INSERT INTO product_events (session_id, event_name, festival_date, weekend, properties)
-        VALUES (${body.sessionId}::uuid, ${body.eventName}, ${body.festivalDate || null}::date, ${body.weekend || null}, ${propertiesJson}::jsonb)`
+      await sql`INSERT INTO product_events (session_id, event_name, festival_date, weekend, country_code, properties)
+        VALUES (${body.sessionId}::uuid, ${body.eventName}, ${body.festivalDate || null}::date, ${body.weekend || null}, ${countryCode(request)}, ${propertiesJson}::jsonb)`
       return json({ accepted: true }, 202)
     } catch {
       return json({ error: 'Event could not be stored' }, 503)

@@ -18,11 +18,12 @@ import {
   X,
 } from 'lucide-react'
 import './App.css'
+import { authBypassEnabled, authClient } from './auth'
 
 type Priority = 'critical' | 'want' | 'like'
 type WallpaperTheme = 'consciousness-desert' | 'botanical-consciousness'
 type ViewMode = 'board' | 'timeline' | 'schedule'
-type AnalyticsEvent = 'planner_opened' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'support_opened'
+type AnalyticsEvent = 'planner_opened' | 'signup_completed' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'support_opened'
 
 type Artist = {
   id: string
@@ -88,19 +89,14 @@ const storageKeys = {
   weekend: 'daymark-weekend',
   wallpaperTheme: 'daymark-wallpaper-theme',
 }
-const SUPPORT_URL = (import.meta.env.VITE_SUPPORT_URL as string | undefined)?.trim()
-const analyticsSessionKey = 'festframe-analytics-session'
+const SUPPORT_URL = (import.meta.env.VITE_SUPPORT_URL as string | undefined)?.trim() || 'https://ko-fi.com/onazart'
+const analyticsSessionId = crypto.randomUUID()
 
 function trackEvent(eventName: AnalyticsEvent, context: { festivalDate?: string; weekend?: 'w1' | 'w2'; properties?: Record<string, string | number | boolean> } = {}) {
-  let sessionId = localStorage.getItem(analyticsSessionKey)
-  if (!sessionId) {
-    sessionId = crypto.randomUUID()
-    localStorage.setItem(analyticsSessionKey, sessionId)
-  }
   void fetch('/api/events', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, eventName, ...context }),
+    body: JSON.stringify({ sessionId: analyticsSessionId, eventName, ...context }),
     keepalive: true,
   }).catch(() => undefined)
 }
@@ -207,8 +203,13 @@ function PriorityPicker({
 }
 
 function App() {
-  const [profile, setProfile] = useState<string | null>(() => localStorage.getItem(storageKeys.profile))
+  const authSession = authClient.useSession()
+  const [bypassProfile, setBypassProfile] = useState<string | null>(() => authBypassEnabled ? localStorage.getItem(storageKeys.profile) : null)
   const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
+  const [authStep, setAuthStep] = useState<'email' | 'otp'>('email')
+  const [authPending, setAuthPending] = useState(false)
+  const [cloudHydrated, setCloudHydrated] = useState(false)
   const [weekend, setWeekend] = useState<'w1' | 'w2'>(() => (localStorage.getItem(storageKeys.weekend) as 'w1' | 'w2') || 'w1')
   const [data, setData] = useState<FestivalData | null>(null)
   const [priorities, setPriorities] = useState<Record<string, Priority>>(() => {
@@ -230,6 +231,9 @@ function App() {
   const [toast, setToast] = useState('')
   const exportCardRef = useRef<HTMLDivElement>(null)
   const hasTrackedOpenRef = useRef(false)
+  const profile = authBypassEnabled ? bypassProfile : authSession.data?.user.email || null
+  const authToken = authBypassEnabled ? null : authSession.data?.session.token || null
+  const authUserId = authBypassEnabled ? bypassProfile : authSession.data?.user.id || null
 
   useEffect(() => {
     const controller = new AbortController()
@@ -256,6 +260,53 @@ function App() {
   useEffect(() => {
     localStorage.setItem(storageKeys.wallpaperTheme, wallpaperTheme)
   }, [wallpaperTheme])
+
+  useEffect(() => {
+    if (!authToken || !authUserId) {
+      setCloudHydrated(false)
+      return
+    }
+
+    const controller = new AbortController()
+    setCloudHydrated(false)
+    fetch('/api/plans', {
+      headers: { Authorization: `Bearer ${authToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Cloud plan could not be loaded')
+        return response.json() as Promise<{ plan: { priorities: Record<string, Priority>; weekend: 'w1' | 'w2'; wallpaperTheme: WallpaperTheme } | null }>
+      })
+      .then(({ plan }) => {
+        if (plan) {
+          setPriorities(plan.priorities)
+          setWeekend(plan.weekend)
+          setWallpaperTheme(plan.wallpaperTheme)
+        }
+        setCloudHydrated(true)
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          setToast('Your local plan is available. Cloud sync will retry shortly.')
+          setCloudHydrated(true)
+        }
+      })
+    return () => controller.abort()
+  }, [authToken, authUserId])
+
+  useEffect(() => {
+    if (!authToken || !cloudHydrated) return
+    const timer = window.setTimeout(() => {
+      void fetch('/api/plans', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priorities, weekend, wallpaperTheme }),
+      }).then((response) => {
+        if (!response.ok) throw new Error('Cloud save failed')
+      }).catch(() => setToast('Plan saved on this device. Cloud sync will retry.'))
+    }, 650)
+    return () => window.clearTimeout(timer)
+  }, [authToken, cloudHydrated, priorities, weekend, wallpaperTheme])
 
   useEffect(() => {
     if (!toast) return
@@ -490,20 +541,62 @@ function App() {
     }
   }
 
-  function login(event: React.FormEvent) {
+  async function requestLoginCode(event: React.FormEvent) {
     event.preventDefault()
     const normalized = email.trim().toLowerCase()
     if (!/^\S+@\S+\.\S+$/.test(normalized)) {
       setToast('Enter a valid email to continue.')
       return
     }
-    localStorage.setItem(storageKeys.profile, normalized)
-    setProfile(normalized)
+    if (authBypassEnabled) {
+      localStorage.setItem(storageKeys.profile, normalized)
+      setBypassProfile(normalized)
+      return
+    }
+
+    setAuthPending(true)
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({ email: normalized, type: 'sign-in' })
+      if (result.error) throw new Error(result.error.message || 'Code could not be sent')
+      setEmail(normalized)
+      setAuthStep('otp')
+      setToast('Check your inbox for the 6-digit FestFrame code.')
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Code could not be sent. Please try again.')
+    } finally {
+      setAuthPending(false)
+    }
   }
 
-  function logout() {
-    localStorage.removeItem(storageKeys.profile)
-    setProfile(null)
+  async function verifyLoginCode(event: React.FormEvent) {
+    event.preventDefault()
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setToast('Enter the 6-digit code from your email.')
+      return
+    }
+
+    setAuthPending(true)
+    try {
+      const result = await authClient.signIn.emailOtp({ email, otp: otp.trim() })
+      if (result.error) throw new Error(result.error.message || 'The code is not valid')
+      await authClient.getSession({ query: { disableCookieCache: true } })
+      trackEvent('signup_completed')
+      setToast('Signed in. Your route now syncs across devices.')
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'The code is not valid. Please try again.')
+    } finally {
+      setAuthPending(false)
+    }
+  }
+
+  async function logout() {
+    if (authBypassEnabled) {
+      localStorage.removeItem(storageKeys.profile)
+      setBypassProfile(null)
+      return
+    }
+    await authClient.signOut()
+    setCloudHydrated(false)
   }
 
   function exportCalendar() {
@@ -640,12 +733,18 @@ function App() {
           <p className="eyebrow">FESTFRAME · UNOFFICIAL FESTIVAL PLANNER</p>
           <h1>Plan Tomorrowland<br />Belgium 2026.</h1>
           <p className="login-copy"><strong>Your festival day, made for your lock screen.</strong><span>Choose the sets that matter, see the overlaps, and take a clear daily route with you.</span></p>
-          <form onSubmit={login} className="login-form">
-            <label htmlFor="email">Your email</label>
-            <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" type="email" autoComplete="email" />
-            <button type="submit" className="primary-button">Plan My Fest <ChevronRight size={18} /></button>
+          <form onSubmit={authStep === 'email' ? requestLoginCode : verifyLoginCode} className="login-form">
+            {authStep === 'email' ? <>
+              <label htmlFor="email">Your email</label>
+              <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" type="email" autoComplete="email" disabled={authPending} />
+            </> : <>
+              <div className="otp-heading"><label htmlFor="otp">6-digit code</label><button type="button" onClick={() => { setAuthStep('email'); setOtp('') }}>Change email</button></div>
+              <input id="otp" className="otp-input" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" type="text" inputMode="numeric" autoComplete="one-time-code" autoFocus disabled={authPending} />
+            </>}
+            <button type="submit" className="primary-button" disabled={authPending}>{authPending ? 'Please wait…' : authStep === 'email' ? 'Plan My Fest' : 'Verify & Plan'} <ChevronRight size={18} /></button>
           </form>
-          <div className="login-note"><Check size={15} /> Personal planner · no inbox or password needed</div>
+          <div className="login-note"><Check size={15} /> One-time code · your route syncs across devices</div>
+          <p className="login-privacy">We use your email only to save and restore your festival plan. No marketing emails.</p>
         </section>
         {toast && <div className="toast">{toast}</div>}
       </main>
@@ -662,7 +761,7 @@ function App() {
           <span>3. Export</span>
         </div>
         <div className="account-menu">
-          {SUPPORT_URL && <a className="support-top-link" href={SUPPORT_URL} target="_blank" rel="noreferrer"><Heart size={16} /><span>Support</span></a>}
+          {SUPPORT_URL && <a className="support-top-link" href={SUPPORT_URL} target="_blank" rel="noreferrer" onClick={() => trackEvent('support_opened', { festivalDate: activeDate, weekend })}><Heart size={16} /><span>Support</span></a>}
           <span>{profile.split('@')[0]}</span>
           <button className="icon-button" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={18} /></button>
         </div>
@@ -712,7 +811,7 @@ function App() {
               <label className="stage-select"><span>Stage</span><select value={stage} onChange={(event) => setStage(event.target.value)}><option value="all">All stages</option>{stages.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
             </div>}
 
-            {viewMode !== 'schedule' && <div className="priority-legend" aria-label="Selection priorities"><span>Click an artist to add as Want</span>{(Object.keys(priorityMeta) as Priority[]).map((priority) => { const Icon = priorityMeta[priority].icon; return <span key={priority}><Icon size={14} style={{ color: priorityMeta[priority].color }} /><b>{priorityMeta[priority].label}</b></span> })}</div>}
+            {viewMode !== 'schedule' && <div className="priority-legend" aria-label="Selection priorities"><span className="legend-instruction"><b>Tap any artist</b><small>Saved as Want by default. Change priority anytime:</small></span>{(Object.keys(priorityMeta) as Priority[]).map((priority) => { const Icon = priorityMeta[priority].icon; const detail = priority === 'critical' ? 'Won’t miss' : priority === 'want' ? 'Plan to see' : 'If time allows'; return <span className="legend-priority" key={priority}><Icon size={15} style={{ color: priorityMeta[priority].color }} /><span><b>{priorityMeta[priority].label}</b><small>{detail}</small></span></span> })}</div>}
 
             {viewMode === 'board' ? <div className="board-groups">
               <div className="board-event-bar"><span>TOMORROWLAND BELGIUM 2026</span><b>{weekend.toUpperCase()} · {activeDateLabel}</b><small>UNOFFICIAL PLANNER</small></div>
@@ -759,6 +858,7 @@ function App() {
           <div className="iphone-shade" />
           <div className="iphone-head"><div className="iphone-brand"><span>FEST</span><i />FRAME</div><small>TOMORROWLAND BELGIUM 2026</small></div>
           <div className="iphone-title"><div><h2>{activeDateLabel}</h2><p>My route · {selectedDaySets.length} sets</p></div><span>{weekend.toUpperCase()}</span></div>
+          <div className="wallpaper-priority-legend" aria-label="Priority legend">{(Object.keys(priorityMeta) as Priority[]).map((priority) => <span key={priority}><i style={{ background: priorityMeta[priority].color }} />{priorityMeta[priority].label}</span>)}</div>
           <div className="wallpaper-timeline">
             <div className="wallpaper-hours">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <time key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }}>{timeFormatter.format(hour)}</time>)}</div>
             <div className="wallpaper-track">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <i key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }} />)}{wallpaperLayout.items.map(({ performance, lane, columns, stacked, stackDepth, overlap, top, height }) => <div className={`wallpaper-set is-${priorities[performance.id]} ${height < 6.5 ? 'is-compact' : ''} ${columns >= 3 ? 'is-narrow' : ''} ${overlap ? 'has-overlap' : ''} ${stacked ? 'is-stacked' : ''}`} key={performance.id} style={{ top: `${top}%`, height: `${height}%`, minHeight: selectedDaySets.length >= 15 ? 24 : selectedDaySets.length >= 9 ? 28 : 30, left: `${lane / columns * 100}%`, width: `calc(${100 / columns}% - 3px)`, transform: stacked ? `translate(${4 + stackDepth * 2}px, ${3 + stackDepth * 4}px)` : undefined, zIndex: priorityMeta[priorities[performance.id]].weight * 10 + (stacked ? stackDepth : 0), '--stage-color': stageColor(performance.stage.name), '--priority-color': priorityMeta[priorities[performance.id]].color } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><span>{performance.stage.name}</span><strong>{eventLabel(performance)}</strong></div>)}</div>

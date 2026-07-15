@@ -1,131 +1,67 @@
 # FestFrame Deployment
 
-FestFrame is a client-only Vite application. It requires no database or server functions for the current MVP.
+FestFrame is a Vite app deployed to Vercel with serverless API routes, Neon analytics storage, and a separate Neon Auth resource for verified email profiles and cloud-saved plans.
 
-## Prerequisites
+## Current Production Setup
 
-- Node.js 22.12 or newer
-- npm
-- A Vercel account
-- A real Ko-fi, Buy Me a Coffee, Lemon Squeezy, or payment-link URL if support should be visible
+- Vercel project: `onazart-team/festframe`
+- Production URL: `https://festframe.vercel.app`
+- GitHub: `OnAzart/festframe`
+- Analytics database: `festframe-db`
+- Auth and plans database: `neon-bisque-zebra`, connected with the `AUTHDB_` prefix
+- Support: `https://ko-fi.com/onazart`
+
+Vercel already supplies `DATABASE_URL`, `AUTHDB_DATABASE_URL`, `AUTHDB_NEON_AUTH_BASE_URL`, and `AUTHDB_VITE_NEON_AUTH_URL` in Production, Preview, and Development.
 
 ## Verify Locally
 
 ```bash
 npm ci
+npx vercel env pull .env.local
 npm run verify
 ```
 
-`npm run verify` runs lint, the production build, and the browser smoke tests. The smoke test starts its own local server when port 5173 is not already serving FestFrame.
+The browser smoke test uses its own server on port `4178`; it does not interfere with the normal dev server on `5173`.
 
-## Fastest Option: Vercel Drop
+## Database Migrations
 
-1. Open [vercel.com/drop](https://vercel.com/drop).
-2. Drop this project folder into the page.
-3. Choose your account and use the project name `festframe`.
-4. Let Vercel detect Vite and build the project.
-5. Add `VITE_SUPPORT_URL` in the new project's Environment Variables and redeploy if support should be visible.
-
-Use this for the fastest first URL. Connect GitHub afterwards if the product continues, so timetable and code updates deploy automatically.
-
-## Option A: Deploy This Folder With Vercel CLI
-
-The Vercel CLI is not currently installed globally. Use `npx`:
+After pulling environment variables:
 
 ```bash
-npx vercel@latest
+set -a; source .env.local; set +a
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/schema.sql
+psql "$AUTHDB_DATABASE_URL" -v ON_ERROR_STOP=1 -f db/auth-schema.sql
 ```
 
-When prompted:
+`db/schema.sql` owns anonymous product events and country code. `db/auth-schema.sql` owns user profiles and saved plans. Neon Auth itself owns verified email identity and sessions.
 
-- Scope: your Vercel account
-- Link to existing project: No
-- Project name: `festframe`
-- Directory: `.`
-- Override settings: No
+## Deploy
 
-Add the production support URL:
+GitHub pushes to `main` deploy automatically. For a direct production deployment:
 
 ```bash
-npx vercel@latest env add VITE_SUPPORT_URL production
+npx vercel --prod
 ```
 
-Then publish production:
+## Optional Environment Variables
 
-```bash
-npx vercel@latest --prod
-```
+- `VITE_SUPPORT_URL`: overrides the default Ko-fi URL.
+- `VITE_META_PIXEL_ID`: reserved for Meta Pixel; do not add it until consent UI and the Privacy Policy are live.
 
-## Option B: GitHub And Automatic Deployments
+## Public Launch Checklist
 
-This directory is not currently a Git repository. Create one and push it to a new GitHub repository:
-
-```bash
-git init
-git add .
-git commit -m "Launch FestFrame MVP"
-git branch -M main
-git remote add origin <YOUR_GITHUB_REPOSITORY_URL>
-git push -u origin main
-```
-
-In Vercel:
-
-1. Select **Add New > Project**.
-2. Import the GitHub repository.
-3. Confirm Framework Preset `Vite`.
-4. Confirm Build Command `npm run build`.
-5. Confirm Output Directory `dist`.
-6. Add `VITE_SUPPORT_URL` under Environment Variables.
-7. Deploy.
-
-The checked-in `vercel.json` already supplies the Vite build settings, security headers, short timetable caching, and wallpaper caching.
-
-## Domain And Social Preview
-
-After the first deployment:
-
-1. Add the preferred domain in **Project Settings > Domains**.
-2. Open the deployed URL and confirm the title is `FestFrame · Tomorrowland 2026 Planner`.
-3. Test the social preview on the actual HTTPS URL.
-4. Replace relative `og:image` and `twitter:image` values with absolute domain URLs if a target platform does not resolve them.
-
-## Production Checklist
-
-### Blocking Before Public Traffic
-
-- [ ] Put the real payment URL in `VITE_SUPPORT_URL`, or intentionally launch without the support button.
-- [ ] Test PNG download on a real iPhone Safari and Android Chrome device.
-- [ ] Import the ICS file into Apple Calendar and Google Calendar on real devices.
-- [ ] Recheck the W1 and W2 timetable snapshots against official updates.
-- [ ] Decide whether to remove the local-only email gate; it adds friction but does not currently capture a lead.
-- [ ] Add privacy-friendly event analytics for first selection, five selections, wallpaper export, and share.
-- [ ] Confirm the unofficial-product disclaimer is visible enough on the first session and exports.
-
-### High-Value Next Improvements
-
-- [ ] Add Web Share API support after wallpaper export, with download fallback.
-- [ ] Add a shareable route URL or compact route code for friends.
-- [ ] Add a visible "timetable updated" timestamp sourced from the data files.
-- [ ] Add an error boundary and a user-facing retry state around timetable loading.
-- [ ] Add a minimal privacy page before collecting analytics or real emails.
-- [ ] Verify a FestFrame domain and trademark before investing in broader branding.
-
-### Later, After Demand
-
-- [ ] Real authentication and cross-device storage.
-- [ ] Friend alignment and Crew Pack.
-- [ ] Automated timetable ingestion for other festivals.
-- [ ] Paid premium wallpaper/device packs.
-- [ ] Monitoring, error reporting, and an uptime check.
+- [x] Verified email sign-in and cross-device cloud plan storage.
+- [x] Country code collection without storing raw IP.
+- [x] Ko-fi support destination.
+- [x] Calendar, PDF, and iPhone 17/17 Pro wallpaper exports.
+- [x] Automated desktop/mobile and wallpaper safe-area tests.
+- [ ] Publish a Privacy Policy with the operator's legal name or trading identity and contact email.
+- [ ] Add account/plan deletion or a documented deletion-request channel.
+- [ ] Test the email code on production with a real inbox.
+- [ ] Test PNG and ICS output on real iPhone and Android devices.
+- [ ] Recheck W1/W2 timetable snapshots against official updates.
+- [ ] Add consent UI before loading Meta Pixel or other advertising cookies.
 
 ## Updating Timetables
 
-Replace the appropriate file in `public/data/`, run verification, and redeploy:
-
-```bash
-npm run verify
-npx vercel@latest --prod
-```
-
-The timetable cache is configured for five minutes at the Vercel edge, so corrections propagate quickly without disabling caching entirely.
+Replace the appropriate file in `public/data/`, run `npm run verify`, and push to `main`. Timetable data is cached for five minutes at the Vercel edge.

@@ -156,7 +156,7 @@ Instrument these events before relying on traffic numbers:
 | Referral | Native share used | Is the wallpaper creating distribution? |
 | Revenue | Support link opened/completed | Is there willingness to pay? |
 
-Use a privacy-friendly tool such as Plausible, Umami, or PostHog with the minimum event set above. Do not treat local email entries as acquired leads; the current app stores them only in the browser.
+Keep the first-party Neon event stream as the source of truth. Verified email profiles and saved plans now live in Neon; do not send email addresses or artist choices to advertising tools.
 
 ## 10. After Validation
 
@@ -178,3 +178,60 @@ The next paid tests should be a one-off premium wallpaper pack and a crew-compar
 - Publish real user routes, not generic lifestyle content.
 - Keep the product unofficial, useful, and transparent about timetable snapshot dates.
 
+## 12. Creator-to-Pixel Growth Loop
+
+The useful logic from [Money Talk With Leon's 4 May 2026 video](https://www.youtube.com/watch?v=cqY6_zyLt1Q) is sequencing, not the headline revenue claim:
+
+1. Start with a narrow, credible creator whose audience already has the problem.
+2. Send that qualified traffic through one focused product experience.
+3. Record meaningful actions with a pixel.
+4. Build retargeting and similar-audience campaigns from the qualified actions rather than buying broad cold traffic first.
+
+For FestFrame, adapt that sequence conservatively:
+
+### Phase A: Seed without ads
+
+- Recruit 5-10 Tomorrowland preparation creators and group admins.
+- Give each one a tagged URL, for example `?utm_source=instagram&utm_medium=creator&utm_campaign=w1_launch&utm_content=creator_name`.
+- Ask for a real route-build video or wallpaper share, not a generic endorsement.
+- Measure verified sign-in, meaningful plan, and wallpaper export by creator.
+
+### Phase B: Train only on real value
+
+Do not optimize Meta toward page views. The useful audience is people who completed a route or exported a wallpaper. The video uses product views, cart, checkout, and purchase; FestFrame must use its actual funnel rather than pretending a free export is a purchase.
+
+| FestFrame action | First-party event | Meta event after consent | Optimization use |
+|---|---|---|---|
+| Planner loaded | `planner_opened` | `PageView` | Diagnostics only |
+| Email code verified | `signup_completed` | `CompleteRegistration` | Account conversion |
+| First artist saved | `first_artist_selected` | `AddToWishlist` | Early activation |
+| Five artists saved | `five_artists_selected` | `Lead` | Meaningful plan |
+| Wallpaper downloaded | `wallpaper_exported` | `WallpaperExported` custom event | Core value/custom audience |
+| Paid pack completed | `purchase_completed` | `Purchase` with value/currency | Revenue optimization only |
+
+Never send email, artist names, or raw plan contents as Meta event properties. Use aggregate fields such as weekend, selected count, export theme, and device class.
+
+### Phase C: Paid test only after signal
+
+- Minimum gate: 100 consented meaningful-plan events or 50 consented exports in one country/audience cluster.
+- First campaign: retarget consented visitors who began planning but did not export; exclude exporters.
+- Second campaign: test Advantage+ audience with high-value event signals; compare against a narrow Tomorrowland-interest control.
+- Budget: EUR 15-25/day for three days, one conversion goal, two creator-style videos, no more than two ad sets.
+- Stop if cost per meaningful plan exceeds the expected gross profit from the future premium pack.
+
+The video's specific lookalike-percentage tactic should be treated as a hypothesis, not a rule. Meta's current Advantage+ audience can use custom and lookalike audiences as suggestions and expand beyond them. [Meta confirms that Pixel/custom audiences can support lookalikes](https://www.facebook.com/help/157306091096340), while current delivery may expand through [Advantage+ audience](https://www.facebook.com/business/ads/meta-advantage-plus/audience).
+
+## 13. Meta Pixel Implementation Gate
+
+Add the Meta Pixel, but do not activate it until these conditions are met:
+
+1. Create a Meta dataset/pixel in Events Manager and add its ID as `VITE_META_PIXEL_ID`.
+2. Publish a Privacy Policy naming the operator, purposes, retention, Neon, Vercel, and Meta.
+3. Show `Necessary only` and `Accept analytics` choices before loading Meta code for EU visitors.
+4. Keep Meta disabled by default; declining must not block planning, cloud save, or export.
+5. Validate events with Meta Pixel Helper and Events Manager Test Events.
+6. Add Conversions API only when there is paid spend and enough signal to justify the extra data flow.
+
+Meta describes setup as a base pixel plus action events, and recommends using Conversions API alongside the Pixel where appropriate. It also states that Conversions API is not a way around European privacy rules. See [Meta Pixel setup](https://www.facebook.com/help/messenger-app/952192354843755) and [Conversions API](https://www.facebook.com/business/help/AboutConversionsAPI).
+
+**Current decision:** prepare the event taxonomy now, but leave Meta code unloaded until the Pixel ID and consent UI exist. First-party product events and country code continue to provide launch validation without sharing user data with Meta.

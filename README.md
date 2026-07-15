@@ -1,6 +1,6 @@
 # FestFrame
 
-A Vite-powered personal festival planner for Tomorrowland Belgium 2026. It is intentionally client-first so it can deploy to Vercel's free static hosting tier without a database.
+A Vite-powered personal festival planner for Tomorrowland Belgium 2026. Verified email profiles and festival plans sync across devices through Neon Auth and Postgres.
 
 - [Marketing strategy](./MARKETING_STRATEGY.md)
 - [Deployment guide and launch checklist](./DEPLOYMENT.md)
@@ -16,13 +16,13 @@ npm run dev
 
 Import this repository in Vercel. Vercel detects Vite automatically; use `npm run build` and publish `dist`.
 
-To show the optional supporter link in the header and export menu, configure the deployment environment variable:
+The header and export menu link to Ko-fi by default. Override the destination with:
 
 ```bash
-VITE_SUPPORT_URL=https://ko-fi.com/your-page
+VITE_SUPPORT_URL=https://ko-fi.com/onazart
 ```
 
-Every feature remains free. The support links stay hidden when this variable is not configured.
+Every feature remains free; support is optional.
 
 ## Wallpaper themes
 
@@ -34,4 +34,6 @@ The export menu includes the `Consciousness` and `Botanical` lock-screen backgro
 
 ## Privacy and login
 
-The login is a local profile gate designed for a private, no-backend Vercel deployment. The email and all selections are stored only in the browser's local storage. Add a real auth provider and database before using this for shared or cross-device plans.
+Neon Auth verifies email with a one-time code. The selected route is cached locally and synced to the authenticated user's Neon plan. Vercel supplies a two-letter country code to the API; FestFrame does not persist raw IP addresses.
+
+Meta Pixel is not active. See [the marketing strategy](./MARKETING_STRATEGY.md#13-meta-pixel-implementation-gate) before adding advertising tracking.
