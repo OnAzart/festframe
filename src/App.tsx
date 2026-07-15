@@ -20,6 +20,7 @@ import './App.css'
 
 type Priority = 'critical' | 'want' | 'like'
 type WallpaperTheme = 'consciousness-desert' | 'botanical-consciousness'
+type AnalyticsEvent = 'planner_opened' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'support_opened'
 
 type Artist = {
   id: string
@@ -86,6 +87,21 @@ const storageKeys = {
   wallpaperTheme: 'daymark-wallpaper-theme',
 }
 const SUPPORT_URL = (import.meta.env.VITE_SUPPORT_URL as string | undefined)?.trim()
+const analyticsSessionKey = 'festframe-analytics-session'
+
+function trackEvent(eventName: AnalyticsEvent, context: { festivalDate?: string; weekend?: 'w1' | 'w2'; properties?: Record<string, string | number | boolean> } = {}) {
+  let sessionId = localStorage.getItem(analyticsSessionKey)
+  if (!sessionId) {
+    sessionId = crypto.randomUUID()
+    localStorage.setItem(analyticsSessionKey, sessionId)
+  }
+  void fetch('/api/events', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, eventName, ...context }),
+    keepalive: true,
+  }).catch(() => undefined)
+}
 
 const dateFormatter = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
@@ -211,6 +227,7 @@ function App() {
   })
   const [toast, setToast] = useState('')
   const exportCardRef = useRef<HTMLDivElement>(null)
+  const hasTrackedOpenRef = useRef(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -243,6 +260,12 @@ function App() {
     const timer = window.setTimeout(() => setToast(''), 3500)
     return () => window.clearTimeout(timer)
   }, [toast])
+
+  useEffect(() => {
+    if (!profile || !data || hasTrackedOpenRef.current) return
+    hasTrackedOpenRef.current = true
+    trackEvent('planner_opened', { weekend })
+  }, [profile, data, weekend])
 
   const dates = useMemo(() => {
     if (!data) return []
@@ -431,7 +454,10 @@ function App() {
 
   function chooseArtist(id: string) {
     if (priorities[id]) return
+    const selectedCount = Object.keys(priorities).length
     choosePriority(id, 'want')
+    if (selectedCount === 0) trackEvent('first_artist_selected', { festivalDate: activeDate, weekend })
+    if (selectedCount === 4) trackEvent('five_artists_selected', { festivalDate: activeDate, weekend })
     if (!localStorage.getItem('festframe-priority-hint-seen')) {
       localStorage.setItem('festframe-priority-hint-seen', 'true')
       setToast('Added to Want. Use Must, Want, or Maybe to change it.')
@@ -533,6 +559,7 @@ function App() {
       link.download = `festframe-${activeDate}-iphone.png`
       link.href = iphone17DataUrl
       link.click()
+      trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length } })
       setToast('iPhone image downloaded.')
     } catch {
       setToast('Image export failed. Please try again.')
@@ -615,7 +642,7 @@ function App() {
               <div className="section-actions">
                 <div className="view-switch" role="group" aria-label="Planner view">
                   <button className={viewMode === 'board' ? 'active' : ''} onClick={() => setViewMode('board')} title="Photo board" aria-label="Photo board"><Grid2X2 size={16} /></button>
-                  <button className={viewMode === 'timeline' ? 'active' : ''} onClick={() => setViewMode('timeline')} title="Timeline view" aria-label="Timeline view"><Columns3 size={16} /></button>
+                  <button className={viewMode === 'timeline' ? 'active' : ''} onClick={() => { setViewMode('timeline'); if (selectedDaySets.length) trackEvent('timeline_viewed', { festivalDate: activeDate, weekend, properties: { selectedCount: selectedDaySets.length } }) }} title="Timeline view" aria-label="Timeline view"><Columns3 size={16} /></button>
                 </div>
                 <span className="set-count">{selectedDaySets.length} saved</span>
               </div>
@@ -695,7 +722,7 @@ function App() {
         </div>
       </div>
 
-      {exportsOpen && <div className="modal-backdrop export-backdrop" role="presentation" onMouseDown={() => setExportsOpen(false)}><section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" onMouseDown={(event) => event.stopPropagation()}><button className="modal-close icon-button" onClick={() => setExportsOpen(false)} aria-label="Close export menu"><X size={18} /></button><p className="eyebrow">{activeDateLabel}</p><h2 id="export-title">Take your route with you.</h2><p>Select a wallpaper, then export this day. Everything is free.</p><div className="wallpaper-theme-picker" role="group" aria-label="Wallpaper style">{WALLPAPER_THEMES.map((theme) => <button key={theme.id} className={wallpaperTheme === theme.id ? 'selected' : ''} onClick={() => setWallpaperTheme(theme.id)} aria-pressed={wallpaperTheme === theme.id}><span style={{ backgroundImage: `url(${theme.image})` }} /><b>{theme.label}</b><Check size={15} /></button>)}</div><div className="export-options"><button onClick={exportCalendar}><CalendarDays size={22} /><span><b>Calendar file</b><small>Google, Apple & Outlook</small></span><ChevronRight size={17} /></button><button onClick={exportPdf}><FileText size={22} /><span><b>Print-ready PDF</b><small>One clean daily rundown</small></span><ChevronRight size={17} /></button><button className="featured-export" onClick={exportIphoneImage}><ImageDown size={22} /><span><b>Lock-screen image</b><small>iPhone 17 / 17 Pro · 1206×2622</small></span><ChevronRight size={17} /></button></div>{SUPPORT_URL && <a className="support-link" href={SUPPORT_URL} target="_blank" rel="noreferrer"><Heart size={18} /><span><b>Keep the planner free</b><small>Optional one-time contribution</small></span><ChevronRight size={16} /></a>}</section></div>}
+      {exportsOpen && <div className="modal-backdrop export-backdrop" role="presentation" onMouseDown={() => setExportsOpen(false)}><section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" onMouseDown={(event) => event.stopPropagation()}><button className="modal-close icon-button" onClick={() => setExportsOpen(false)} aria-label="Close export menu"><X size={18} /></button><p className="eyebrow">{activeDateLabel}</p><h2 id="export-title">Take your route with you.</h2><p>Select a wallpaper, then export this day. Everything is free.</p><div className="wallpaper-theme-picker" role="group" aria-label="Wallpaper style">{WALLPAPER_THEMES.map((theme) => <button key={theme.id} className={wallpaperTheme === theme.id ? 'selected' : ''} onClick={() => setWallpaperTheme(theme.id)} aria-pressed={wallpaperTheme === theme.id}><span style={{ backgroundImage: `url(${theme.image})` }} /><b>{theme.label}</b><Check size={15} /></button>)}</div><div className="export-options"><button onClick={exportCalendar}><CalendarDays size={22} /><span><b>Calendar file</b><small>Google, Apple & Outlook</small></span><ChevronRight size={17} /></button><button onClick={exportPdf}><FileText size={22} /><span><b>Print-ready PDF</b><small>One clean daily rundown</small></span><ChevronRight size={17} /></button><button className="featured-export" onClick={exportIphoneImage}><ImageDown size={22} /><span><b>Lock-screen image</b><small>iPhone 17 / 17 Pro · 1206×2622</small></span><ChevronRight size={17} /></button></div>{SUPPORT_URL && <a className="support-link" href={SUPPORT_URL} target="_blank" rel="noreferrer" onClick={() => trackEvent('support_opened', { festivalDate: activeDate, weekend })}><Heart size={18} /><span><b>Keep the planner free</b><small>Optional one-time contribution</small></span><ChevronRight size={16} /></a>}</section></div>}
       {toast && <div className="toast" role="status">{toast}</div>}
     </main>
   )
