@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   CalendarDays,
+  CalendarCheck,
   Check,
   ChevronRight,
   Download,
@@ -20,6 +21,7 @@ import './App.css'
 
 type Priority = 'critical' | 'want' | 'like'
 type WallpaperTheme = 'consciousness-desert' | 'botanical-consciousness'
+type ViewMode = 'board' | 'timeline' | 'schedule'
 type AnalyticsEvent = 'planner_opened' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'support_opened'
 
 type Artist = {
@@ -219,7 +221,7 @@ function App() {
   const [activeDate, setActiveDate] = useState('')
   const [search, setSearch] = useState('')
   const [stage, setStage] = useState('all')
-  const [viewMode, setViewMode] = useState<'board' | 'timeline'>(() => window.matchMedia('(max-width: 700px)').matches ? 'board' : 'timeline')
+  const [viewMode, setViewMode] = useState<ViewMode>(() => window.matchMedia('(max-width: 700px)').matches ? 'board' : 'timeline')
   const [exportsOpen, setExportsOpen] = useState(false)
   const [wallpaperTheme, setWallpaperTheme] = useState<WallpaperTheme>(() => {
     const saved = localStorage.getItem(storageKeys.wallpaperTheme)
@@ -339,6 +341,30 @@ function App() {
       .sort((a, b) => localDate(a.startTime).getTime() - localDate(b.startTime).getTime())
   }, [data, activeDate, priorities])
 
+  const selectedStages = useMemo(() => stages.filter((stageName) => selectedDaySets.some((performance) => performance.stage.name === stageName)), [selectedDaySets, stages])
+
+  const scheduleBounds = useMemo(() => {
+    if (!selectedDaySets.length) return null
+    const firstStart = Math.min(...selectedDaySets.map((performance) => localDate(performance.startTime).getTime()))
+    const lastEnd = Math.max(...selectedDaySets.map((performance) => localDate(performance.endTime).getTime()))
+    const start = new Date(Math.floor(firstStart / 3_600_000) * 3_600_000)
+    const naturalEnd = Math.ceil(lastEnd / 3_600_000) * 3_600_000
+    const end = new Date(Math.max(naturalEnd, start.getTime() + 3 * 3_600_000))
+    const durationMinutes = (end.getTime() - start.getTime()) / 60_000
+    return { start, end, height: durationMinutes * TIMELINE_PX_PER_MINUTE }
+  }, [selectedDaySets])
+
+  const scheduleHours = useMemo(() => {
+    if (!scheduleBounds) return []
+    const hours: Date[] = []
+    const cursor = new Date(scheduleBounds.start)
+    while (cursor <= scheduleBounds.end) {
+      hours.push(new Date(cursor))
+      cursor.setHours(cursor.getHours() + 1)
+    }
+    return hours
+  }, [scheduleBounds])
+
   const conflicts = useMemo(() => {
     const issues: { left: Performance; right: Performance; message: string }[] = []
     for (let index = 0; index < selectedDaySets.length; index += 1) {
@@ -376,7 +402,7 @@ function App() {
     const lastEnd = Math.max(...selectedDaySets.map((performance) => localDate(performance.endTime).getTime()))
     const start = new Date(Math.floor(firstStart / 3_600_000) * 3_600_000)
     const naturalEnd = Math.ceil(lastEnd / 3_600_000) * 3_600_000
-    const end = new Date(Math.max(naturalEnd, start.getTime() + 4 * 3_600_000))
+    const end = new Date(Math.max(naturalEnd + 30 * 60_000, start.getTime() + 4.5 * 3_600_000))
     return { start, end, height: 440 }
   }, [selectedDaySets, timelineBounds])
 
@@ -566,6 +592,38 @@ function App() {
     }
   }
 
+  function renderTimeline(
+    bounds: { start: Date; end: Date; height: number },
+    hours: Date[],
+    stageNames: string[],
+    performances: Performance[],
+    finalSchedule = false,
+  ) {
+    return <div className={`timeline-scroll ${finalSchedule ? 'schedule-scroll' : ''}`}>
+      <div className="timeline-grid" style={{ gridTemplateColumns: `64px repeat(${stageNames.length}, ${TIMELINE_STAGE_WIDTH}px)` }}>
+        <div className="timeline-corner">TIME</div>
+        {stageNames.map((stageName) => <div className="timeline-stage-name" key={stageName} style={{ '--stage-color': stageColor(stageName) } as React.CSSProperties}>{stageName}</div>)}
+        <div className="timeline-time-rail" style={{ height: bounds.height }}>
+          {hours.map((hour) => <time key={hour.toISOString()} style={{ top: (hour.getTime() - bounds.start.getTime()) / 60_000 * TIMELINE_PX_PER_MINUTE }}>{timeFormatter.format(hour)}</time>)}
+        </div>
+        {stageNames.map((stageName) => <div className="timeline-track" key={stageName} style={{ height: bounds.height }}>
+          {hours.map((hour) => <i key={hour.toISOString()} className="timeline-hour-line" style={{ top: (hour.getTime() - bounds.start.getTime()) / 60_000 * TIMELINE_PX_PER_MINUTE }} />)}
+          {performances.filter((performance) => performance.stage.name === stageName).map((performance) => {
+            const selected = priorities[performance.id]
+            const top = (localDate(performance.startTime).getTime() - bounds.start.getTime()) / 60_000 * TIMELINE_PX_PER_MINUTE
+            const naturalHeight = (localDate(performance.endTime).getTime() - localDate(performance.startTime).getTime()) / 60_000 * TIMELINE_PX_PER_MINUTE - 5
+            const height = Math.max(finalSchedule ? 46 : 72, naturalHeight)
+            return <article className={`timeline-set ${finalSchedule ? 'schedule-set' : 'is-selectable'} ${selected ? `is-${selected}` : ''}`} key={performance.id} onClick={finalSchedule ? undefined : () => chooseArtist(performance.id)} style={{ top, height, '--stage-color': stageColor(performance.stage.name) } as React.CSSProperties}>
+              <time>{timeFormatter.format(localDate(performance.startTime))}–{timeFormatter.format(localDate(performance.endTime))}</time>
+              <h3>{eventLabel(performance)}</h3>
+              {finalSchedule && selected ? <span className="schedule-priority" style={{ color: priorityMeta[selected].color }}>{priorityMeta[selected].label}</span> : <PriorityPicker compact selected={selected} onChoose={(priority) => choosePriority(performance.id, priority)} />}
+            </article>
+          })}
+        </div>)}
+      </div>
+    </div>
+  }
+
   if (!profile) {
     return (
       <main className="login-screen">
@@ -637,23 +695,24 @@ function App() {
             <div className="section-heading">
               <div>
                 <p className="eyebrow">{activeDateLabel}</p>
-                <h2>Build your day</h2>
+                <h2>{viewMode === 'schedule' ? 'My Schedule' : 'Build your day'}</h2>
               </div>
               <div className="section-actions">
                 <div className="view-switch" role="group" aria-label="Planner view">
                   <button className={viewMode === 'board' ? 'active' : ''} onClick={() => setViewMode('board')} title="Photo board" aria-label="Photo board"><Grid2X2 size={16} /></button>
                   <button className={viewMode === 'timeline' ? 'active' : ''} onClick={() => { setViewMode('timeline'); if (selectedDaySets.length) trackEvent('timeline_viewed', { festivalDate: activeDate, weekend, properties: { selectedCount: selectedDaySets.length } }) }} title="Timeline view" aria-label="Timeline view"><Columns3 size={16} /></button>
+                  <button className={viewMode === 'schedule' ? 'active' : ''} onClick={() => setViewMode('schedule')} title="My Schedule" aria-label="My Schedule"><CalendarCheck size={16} /></button>
                 </div>
                 <span className="set-count">{selectedDaySets.length} saved</span>
               </div>
             </div>
 
-            <div className="filters">
+            {viewMode !== 'schedule' && <div className="filters">
               <label className="search-field"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search artists or stages" /></label>
               <label className="stage-select"><span>Stage</span><select value={stage} onChange={(event) => setStage(event.target.value)}><option value="all">All stages</option>{stages.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-            </div>
+            </div>}
 
-            <div className="priority-legend" aria-label="Selection priorities"><span>Click an artist to add as Want</span>{(Object.keys(priorityMeta) as Priority[]).map((priority) => { const Icon = priorityMeta[priority].icon; return <span key={priority}><Icon size={14} style={{ color: priorityMeta[priority].color }} /><b>{priorityMeta[priority].label}</b></span> })}</div>
+            {viewMode !== 'schedule' && <div className="priority-legend" aria-label="Selection priorities"><span>Click an artist to add as Want</span>{(Object.keys(priorityMeta) as Priority[]).map((priority) => { const Icon = priorityMeta[priority].icon; return <span key={priority}><Icon size={14} style={{ color: priorityMeta[priority].color }} /><b>{priorityMeta[priority].label}</b></span> })}</div>}
 
             {viewMode === 'board' ? <div className="board-groups">
               <div className="board-event-bar"><span>TOMORROWLAND BELGIUM 2026</span><b>{weekend.toUpperCase()} · {activeDateLabel}</b><small>UNOFFICIAL PLANNER</small></div>
@@ -669,24 +728,10 @@ function App() {
                   </article>
                 })}</div>
               </section>)}
-            </div> : timelineBounds && <div className="timeline-scroll">
-              <div className="timeline-grid" style={{ gridTemplateColumns: `64px repeat(${stage === 'all' ? stages.length : 1}, ${TIMELINE_STAGE_WIDTH}px)` }}>
-                <div className="timeline-corner">TIME</div>
-                {(stage === 'all' ? stages : [stage]).map((stageName) => <div className="timeline-stage-name" key={stageName} style={{ '--stage-color': stageColor(stageName) } as React.CSSProperties}>{stageName}</div>)}
-                <div className="timeline-time-rail" style={{ height: timelineBounds.height }}>
-                  {timelineHours.map((hour) => <time key={hour.toISOString()} style={{ top: (hour.getTime() - timelineBounds.start.getTime()) / 60_000 * TIMELINE_PX_PER_MINUTE }}>{timeFormatter.format(hour)}</time>)}
-                </div>
-                {(stage === 'all' ? stages : [stage]).map((stageName) => <div className="timeline-track" key={stageName} style={{ height: timelineBounds.height }}>
-                  {timelineHours.map((hour) => <i key={hour.toISOString()} className="timeline-hour-line" style={{ top: (hour.getTime() - timelineBounds.start.getTime()) / 60_000 * TIMELINE_PX_PER_MINUTE }} />)}
-                  {daySets.filter((performance) => performance.stage.name === stageName).map((performance) => {
-                    const selected = priorities[performance.id]
-                    const top = (localDate(performance.startTime).getTime() - timelineBounds.start.getTime()) / 60_000 * TIMELINE_PX_PER_MINUTE
-                    const height = Math.max(72, (localDate(performance.endTime).getTime() - localDate(performance.startTime).getTime()) / 60_000 * TIMELINE_PX_PER_MINUTE - 5)
-                    return <article className={`timeline-set is-selectable ${selected ? `is-${selected}` : ''}`} key={performance.id} onClick={() => chooseArtist(performance.id)} style={{ top, height, '--stage-color': stageColor(performance.stage.name) } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><h3>{eventLabel(performance)}</h3><PriorityPicker compact selected={selected} onChoose={(priority) => choosePriority(performance.id, priority)} /></article>
-                  })}
-                </div>)}
-              </div>
-            </div>}
+            </div> : viewMode === 'timeline' && timelineBounds ? renderTimeline(timelineBounds, timelineHours, stage === 'all' ? stages : [stage], daySets) : viewMode === 'schedule' && scheduleBounds ? <div className="my-schedule-view">
+              <div className="schedule-event-bar"><div><CalendarCheck size={18} /><span>MY SCHEDULE</span></div><b>{selectedDaySets.length} SETS · {selectedStages.length} STAGES</b><small>Only your selected route, from first set to last.</small></div>
+              {renderTimeline(scheduleBounds, scheduleHours, selectedStages, selectedDaySets, true)}
+            </div> : <div className="schedule-empty"><CalendarCheck size={24} /><strong>No sets in your schedule yet.</strong><p>Choose artists from Board or Timeline and they will appear here.</p><button onClick={() => setViewMode('board')}>Browse artists <ChevronRight size={16} /></button></div>}
           </section>
 
           <aside className="route-panel">
@@ -698,7 +743,7 @@ function App() {
                 return <span key={priority} title={priorityMeta[priority].label}><Icon size={14} style={{ color: priorityMeta[priority].color }} /><b style={{ color: priorityMeta[priority].color }}>{stats[priority]}</b><small>{priorityMeta[priority].label}</small></span>
               })}
             </div>
-            {overlappingSetCount > 0 && <button className="overlap-note" onClick={() => setViewMode('timeline')}><Columns3 size={15} /><span>{overlappingSetCount} saved sets overlap</span><ChevronRight size={14} /></button>}
+            {overlappingSetCount > 0 && <button className="overlap-note" onClick={() => setViewMode('schedule')}><CalendarCheck size={15} /><span>{overlappingSetCount} saved sets overlap</span><ChevronRight size={14} /></button>}
 
             <div className="route-list">
               {selectedDaySets.length ? selectedDaySets.map((performance) => <div className="route-item" key={performance.id} style={{ '--stage-color': stageColor(performance.stage.name) } as React.CSSProperties}><span className="route-dot" style={{ background: stageColor(performance.stage.name) }} /><div><time>{timeFormatter.format(localDate(performance.startTime))}</time><strong>{eventLabel(performance)}</strong><small>{performance.stage.name}</small></div><button className="remove-set" onClick={() => { const next = { ...priorities }; delete next[performance.id]; setPriorities(next) }} title={`Remove ${eventLabel(performance)} from your route`} aria-label={`Remove ${eventLabel(performance)} from your route`}><X size={15} /></button></div>) : <div className="empty-route"><Sparkles size={22} /><strong>Your route starts here.</strong><p>Choose the acts that matter. Your route builds itself in time order.</p></div>}
@@ -709,14 +754,14 @@ function App() {
       </>}
 
       <div className={`iphone-export ${exportsOpen ? 'is-previewing' : ''}`} aria-hidden="true">
-        <div className="iphone-card" ref={exportCardRef}>
+        <div className={`iphone-card ${selectedDaySets.length >= 15 ? 'is-packed' : selectedDaySets.length >= 9 ? 'is-dense' : ''}`} ref={exportCardRef}>
           <div className="iphone-artwork" style={{ backgroundImage: `url(${WALLPAPER_THEMES.find((theme) => theme.id === wallpaperTheme)?.image})` }} />
           <div className="iphone-shade" />
           <div className="iphone-head"><div className="iphone-brand"><span>FEST</span><i />FRAME</div><small>TOMORROWLAND BELGIUM 2026</small></div>
           <div className="iphone-title"><div><h2>{activeDateLabel}</h2><p>My route · {selectedDaySets.length} sets</p></div><span>{weekend.toUpperCase()}</span></div>
           <div className="wallpaper-timeline">
             <div className="wallpaper-hours">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <time key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }}>{timeFormatter.format(hour)}</time>)}</div>
-            <div className="wallpaper-track">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <i key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }} />)}{wallpaperLayout.items.map(({ performance, lane, columns, stacked, stackDepth, overlap, top, height }) => <div className={`wallpaper-set is-${priorities[performance.id]} ${height < 6.5 ? 'is-compact' : ''} ${columns >= 3 ? 'is-narrow' : ''} ${overlap ? 'has-overlap' : ''} ${stacked ? 'is-stacked' : ''}`} key={performance.id} style={{ top: `${top}%`, height: `${height}%`, minHeight: 27, left: `${lane / columns * 100}%`, width: `calc(${100 / columns}% - 3px)`, transform: stacked ? `translate(${4 + stackDepth * 2}px, ${3 + stackDepth * 4}px)` : undefined, zIndex: priorityMeta[priorities[performance.id]].weight * 10 + (stacked ? stackDepth : 0), '--stage-color': stageColor(performance.stage.name) } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><strong>{eventLabel(performance)}</strong><span>{performance.stage.name}</span></div>)}</div>
+            <div className="wallpaper-track">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <i key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }} />)}{wallpaperLayout.items.map(({ performance, lane, columns, stacked, stackDepth, overlap, top, height }) => <div className={`wallpaper-set is-${priorities[performance.id]} ${height < 6.5 ? 'is-compact' : ''} ${columns >= 3 ? 'is-narrow' : ''} ${overlap ? 'has-overlap' : ''} ${stacked ? 'is-stacked' : ''}`} key={performance.id} style={{ top: `${top}%`, height: `${height}%`, minHeight: selectedDaySets.length >= 15 ? 21 : selectedDaySets.length >= 9 ? 24 : 27, left: `${lane / columns * 100}%`, width: `calc(${100 / columns}% - 3px)`, transform: stacked ? `translate(${4 + stackDepth * 2}px, ${3 + stackDepth * 4}px)` : undefined, zIndex: priorityMeta[priorities[performance.id]].weight * 10 + (stacked ? stackDepth : 0), '--stage-color': stageColor(performance.stage.name) } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><strong>{eventLabel(performance)}</strong><span>{performance.stage.name}</span></div>)}</div>
           </div>
           <footer><span>{wallpaperLayout.hidden ? `+${wallpaperLayout.hidden} more in the app` : overlappingSetCount ? 'Overlaps shown side by side' : 'Ready for the day'}</span><b>MADE WITH FESTFRAME</b></footer>
         </div>

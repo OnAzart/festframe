@@ -66,6 +66,11 @@ await page.locator('.timeline-track').first().waitFor()
 if (await page.locator('.timeline-stage-name').nth(0).textContent() !== 'MAINSTAGE') throw new Error('Timeline Mainstage was not first')
 if (await page.locator('.timeline-stage-name').nth(1).textContent() !== 'FREEDOM BY BUD') throw new Error('Timeline Freedom was not second')
 await page.screenshot({ path: `${output}/timeline.png`, fullPage: true })
+await page.getByRole('button', { name: 'My Schedule' }).click()
+await page.locator('.schedule-scroll').waitFor()
+if (await page.locator('.schedule-set').count() !== 2) throw new Error('My Schedule did not show exactly the selected sets')
+if (await page.locator('.schedule-scroll .timeline-stage-name').count() !== 2) throw new Error('My Schedule included an empty stage')
+await page.screenshot({ path: `${output}/my-schedule.png`, fullPage: true })
 await page.getByRole('button', { name: 'Photo board' }).click()
 for (const [priority, startTime] of ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'].entries()) {
   const matchingCard = page.locator('.board-card').filter({ has: page.locator('.board-content time', { hasText: startTime }) }).first()
@@ -75,6 +80,21 @@ await page.getByRole('button', { name: 'Export' }).click()
 await page.getByRole('dialog').waitFor()
 const previewBox = await page.locator('.iphone-export.is-previewing .iphone-card').boundingBox()
 if (!previewBox || previewBox.x < 0 || previewBox.width < 150) throw new Error('Wallpaper preview is not visible beside the export dialog')
+const wallpaperSafeArea = await page.locator('.iphone-export.is-previewing .iphone-card').evaluate((card) => {
+  const timeline = card.querySelector('.wallpaper-timeline')
+  const sets = [...card.querySelectorAll('.wallpaper-set')]
+  if (!timeline) return null
+  const cardBox = card.getBoundingClientRect()
+  const timelineBox = timeline.getBoundingClientRect()
+  return {
+    timelineBottomRatio: (timelineBox.bottom - cardBox.top) / cardBox.height,
+    allSetsVisible: sets.every((set) => {
+      const box = set.getBoundingClientRect()
+      return box.top >= timelineBox.top - 1 && box.bottom <= timelineBox.bottom + 1
+    }),
+  }
+})
+if (!wallpaperSafeArea || wallpaperSafeArea.timelineBottomRatio > 0.76 || !wallpaperSafeArea.allSetsVisible) throw new Error('Wallpaper schedule leaves the iPhone safe area')
 
 let downloadPromise = page.waitForEvent('download')
 await page.getByRole('button', { name: 'Calendar file Google, Apple & Outlook' }).click()
@@ -111,6 +131,9 @@ const mobileHeaderBox = await mobilePage.locator('.timeline-corner').boundingBox
 if (!mobileHourBox || !mobileHeaderBox || mobileHourBox.y < mobileHeaderBox.y + mobileHeaderBox.height) throw new Error('Mobile timeline start time is clipped by its header')
 await mobilePage.getByRole('button', { name: 'Photo board' }).click()
 await mobilePage.locator('.board-card').first().waitFor()
+await mobilePage.getByRole('button', { name: 'My Schedule' }).click()
+await mobilePage.locator('.schedule-scroll').waitFor()
+if (await mobilePage.locator('.schedule-set').count() !== 1) throw new Error('My Schedule is incorrect on mobile')
 await mobilePage.screenshot({ path: `${output}/mobile.png`, fullPage: true })
 
 for (const file of ['plan.ics', 'plan.pdf', 'consciousness-desert-timeline.png', 'botanical-consciousness-timeline.png']) {
