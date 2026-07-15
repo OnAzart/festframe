@@ -103,10 +103,10 @@
 .board-card.is-critical .board-image::after { background:rgba(255,91,77,.36); }
 .board-card.is-want .board-image::after { background:rgba(247,191,55,.34); }
 .board-card.is-like .board-image::after { background:rgba(43,196,176,.34); }
-.timeline-set.is-critical,.timeline-set.is-want,.timeline-set.is-like { outline:0; box-shadow:inset 0 0 0 1px rgba(20,26,44,.05),2px 2px 0 rgba(20,26,44,.08); }
-.timeline-set.is-critical { background:#fff8f7; }
-.timeline-set.is-want { background:#fffdf4; }
-.timeline-set.is-like { background:#f5fcfb; }
+.timeline-set.is-critical,.timeline-set.is-want,.timeline-set.is-like { outline:0; box-shadow:inset 0 0 0 1px var(--selection-color),2px 2px 0 rgba(20,26,44,.08); }
+.timeline-set.is-critical { background:#ffded9; }
+.timeline-set.is-want { background:#fff0bf; }
+.timeline-set.is-like { background:#d8f5ef; }
 @media (max-width: 580px) { .board-groups { gap:22px; }.board-stage-heading { position:sticky; top:0; z-index:4; padding-top:8px; background:var(--paper); } }
 .login-copy strong,.login-copy span { display:block; }
 .login-copy strong { margin-bottom:8px; color:var(--ink); }

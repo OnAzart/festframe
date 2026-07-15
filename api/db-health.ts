@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { neon } from '@neondatabase/serverless'
 
 function json(body: unknown, status = 200) {

@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { neon } from '@neondatabase/serverless'
 
 const allowedEvents = new Set([
