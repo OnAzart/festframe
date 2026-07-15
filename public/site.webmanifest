@@ -1,0 +1,17 @@
+{
+  "name": "FestFrame",
+  "short_name": "FestFrame",
+  "description": "Your festival day, made for your lock screen.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ec",
+  "theme_color": "#101422",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
