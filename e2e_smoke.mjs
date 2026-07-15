@@ -92,9 +92,15 @@ const wallpaperSafeArea = await page.locator('.iphone-export.is-previewing .ipho
       const box = set.getBoundingClientRect()
       return box.top >= timelineBox.top - 1 && box.bottom <= timelineBox.bottom + 1
     }),
+    stageLabelsVisible: sets.every((set) => {
+      const label = set.querySelector('span')
+      return label && getComputedStyle(label).display !== 'none' && Boolean(label.textContent?.trim())
+    }),
+    priorityBordersVisible: sets.every((set) => Number.parseFloat(getComputedStyle(set).borderTopWidth) >= 2),
   }
 })
 if (!wallpaperSafeArea || wallpaperSafeArea.timelineBottomRatio > 0.76 || !wallpaperSafeArea.allSetsVisible) throw new Error('Wallpaper schedule leaves the iPhone safe area')
+if (!wallpaperSafeArea.stageLabelsVisible || !wallpaperSafeArea.priorityBordersVisible) throw new Error('Wallpaper is missing stage or priority signals')
 
 let downloadPromise = page.waitForEvent('download')
 await page.getByRole('button', { name: 'Calendar file Google, Apple & Outlook' }).click()
