@@ -17,6 +17,7 @@ import {
   Columns3,
   X,
 } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import './App.css'
 
 type Priority = 'critical' | 'want' | 'like'
@@ -663,6 +664,7 @@ function App() {
           <p className="login-privacy">Email is optional. We store it with your FestFrame profile; no marketing emails without separate consent.</p>
         </section>
         {toast && <div className="toast">{toast}</div>}
+        <Analytics />
       </main>
     )
   }
@@ -785,6 +787,7 @@ function App() {
 
       {exportsOpen && <div className="modal-backdrop export-backdrop" role="presentation" onMouseDown={() => setExportsOpen(false)}><section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" onMouseDown={(event) => event.stopPropagation()}><button className="modal-close icon-button" onClick={() => setExportsOpen(false)} aria-label="Close export menu"><X size={18} /></button><p className="eyebrow">{activeDateLabel}</p><h2 id="export-title">Take your route with you.</h2><p>Select a wallpaper, then export this day. Everything is free.</p><div className="wallpaper-theme-picker" role="group" aria-label="Wallpaper style">{WALLPAPER_THEMES.map((theme) => <button key={theme.id} className={wallpaperTheme === theme.id ? 'selected' : ''} onClick={() => setWallpaperTheme(theme.id)} aria-pressed={wallpaperTheme === theme.id}><span style={{ backgroundImage: `url(${theme.image})` }} /><b>{theme.label}</b><Check size={15} /></button>)}</div><div className="export-options"><button onClick={exportCalendar}><CalendarDays size={22} /><span><b>Calendar file</b><small>Google, Apple & Outlook</small></span><ChevronRight size={17} /></button><button onClick={exportPdf}><FileText size={22} /><span><b>Print-ready PDF</b><small>One clean daily rundown</small></span><ChevronRight size={17} /></button><button className="featured-export" onClick={exportIphoneImage}><ImageDown size={22} /><span><b>Lock-screen image</b><small>iPhone 17 / 17 Pro · 1206×2622</small></span><ChevronRight size={17} /></button></div>{SUPPORT_URL && <a className="support-link" href={SUPPORT_URL} target="_blank" rel="noreferrer" onClick={() => trackEvent('support_opened', { festivalDate: activeDate, weekend })}><Heart size={18} /><span><b>Keep the planner free</b><small>Optional one-time contribution</small></span><ChevronRight size={16} /></a>}</section></div>}
       {toast && <div className="toast" role="status">{toast}</div>}
+      <Analytics />
     </main>
   )
 }
