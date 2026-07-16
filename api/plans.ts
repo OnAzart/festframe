@@ -63,9 +63,10 @@ export default {
       if (body.wallpaperTheme !== 'consciousness-desert' && body.wallpaperTheme !== 'botanical-consciousness') return json({ error: 'Invalid wallpaper theme' }, 400)
 
       const prioritiesJson = JSON.stringify(body.priorities)
-      await sql`INSERT INTO festframe_email_plans (email_hash, priorities, weekend, wallpaper_theme)
-        VALUES (${lookup}, ${prioritiesJson}::jsonb, ${body.weekend}, ${body.wallpaperTheme})
+      await sql`INSERT INTO festframe_email_plans (email_hash, email, priorities, weekend, wallpaper_theme)
+        VALUES (${lookup}, ${email}, ${prioritiesJson}::jsonb, ${body.weekend}, ${body.wallpaperTheme})
         ON CONFLICT (email_hash) DO UPDATE SET
+          email = EXCLUDED.email,
           priorities = EXCLUDED.priorities,
           weekend = EXCLUDED.weekend,
           wallpaper_theme = EXCLUDED.wallpaper_theme,

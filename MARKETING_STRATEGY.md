@@ -156,7 +156,7 @@ Instrument these events before relying on traffic numbers:
 | Referral | Native share used | Is the wallpaper creating distribution? |
 | Revenue | Support link opened/completed | Is there willingness to pay? |
 
-Keep the first-party Neon event stream as the source of truth. Optional email profiles, country codes, and hashed-email festival plans live in Neon; skipped profiles stay on-device. Do not send email addresses or artist choices to advertising tools.
+Keep the first-party Neon event stream as the source of truth. Optional email profiles, country codes, and email-linked festival plans live in Neon; skipped profiles stay on-device. Do not send email addresses or artist choices to advertising tools.
 
 ## 10. After Validation
 

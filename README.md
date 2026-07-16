@@ -34,6 +34,6 @@ The export menu includes the `Consciousness` and `Botanical` lock-screen backgro
 
 ## Privacy and login
 
-People can enter an email or skip directly to the planner. Email profiles sync the selected route through a hashed email lookup; skipped profiles remain local to that device. This temporary restore does not verify email ownership yet. Vercel supplies a two-letter country code to the API; FestFrame does not persist raw IP addresses or send marketing email without separate consent.
+People can enter an email or skip directly to the planner. Email profiles sync the selected route through an email plus hashed lookup key; skipped profiles remain local to that device. This temporary restore does not verify email ownership yet. Vercel supplies a two-letter country code to the API; FestFrame does not persist raw IP addresses or send marketing email without separate consent.
 
 Meta Pixel is not active. See [the marketing strategy](./MARKETING_STRATEGY.md#13-meta-pixel-implementation-gate) before adding advertising tracking.

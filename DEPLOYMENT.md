@@ -33,7 +33,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/schema.sql
 psql "$AUTHDB_DATABASE_URL" -v ON_ERROR_STOP=1 -f db/auth-schema.sql
 ```
 
-`db/schema.sql` owns anonymous product events and country code. `db/auth-schema.sql` owns optional email leads and hashed-email festival plans. Email profiles sync through `/api/plans`; skipped profiles stay in local storage. The older Auth tables remain reserved for future verified sync.
+`db/schema.sql` owns anonymous product events and country code. `db/auth-schema.sql` owns optional email leads and festival plans stored with both email and a hashed lookup key. Email profiles sync through `/api/plans`; skipped profiles stay in local storage. The older Auth tables remain reserved for future verified sync.
 
 ## Deploy
 
