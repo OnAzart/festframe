@@ -138,7 +138,7 @@ Primary CTA: **Plan My Fest**
 The wallpaper is the acquisition asset.
 
 - Keep **MADE WITH FESTFRAME** visible but secondary.
-- Add native Web Share after PNG export so mobile users can send the file directly.
+- Native Web Share is live for the PNG export, with a download fallback on unsupported browsers.
 - Later, add a small route code or share URL so friends can import selections.
 - Do not add referral rewards before organic sharing exists.
 
@@ -153,7 +153,7 @@ Instrument these events before relying on traffic numbers:
 | Activation | Five artists selected | Did the user build a meaningful plan? |
 | Core value | Timeline viewed after selections | Are users checking clashes? |
 | Core value | Wallpaper exported | Did FestFrame deliver its main promise? |
-| Referral | Native share used | Is the wallpaper creating distribution? |
+| Referral | Native share used (`wallpaper_shared`) | Is the wallpaper creating distribution? |
 | Revenue | Support link opened/completed | Is there willingness to pay? |
 
 Keep the first-party Neon event stream as the source of truth. Optional email profiles, country codes, and email-linked festival plans live in Neon; skipped profiles stay on-device. Do not send email addresses or artist choices to advertising tools.
@@ -235,3 +235,17 @@ Add the Meta Pixel, but do not activate it until these conditions are met:
 Meta describes setup as a base pixel plus action events, and recommends using Conversions API alongside the Pixel where appropriate. It also states that Conversions API is not a way around European privacy rules. See [Meta Pixel setup](https://www.facebook.com/help/messenger-app/952192354843755) and [Conversions API](https://www.facebook.com/business/help/AboutConversionsAPI).
 
 **Current decision:** prepare the event taxonomy now, but leave Meta code unloaded until the Pixel ID and consent UI exist. First-party product events and country code continue to provide launch validation without sharing user data with Meta.
+
+## 14. Current Market Position
+
+The official Tomorrowland app now supports favorites and a personalized schedule, so FestFrame should not be promoted as merely another timetable. Its defendable launch wedge is the finished artifact: priorities, clashes, calendar export, and a route designed for the lock screen without installing an app. The [official Google Play listing](https://play.google.com/store/apps/details?id=com.tomorrowland.tomorrowland) confirms the official product already owns the basic schedule job.
+
+Community demand still exists around clearer visual output and reliability. Recent Reddit discussions report favorite selections being reset after an app update, requests for a few clear timetable images, and active use of third-party clash and crew planners. See the [official-app schedule discussion](https://www.reddit.com/r/Tomorrowland/comments/1uceaql/tomorrowland_app_schedule/), [visual timetable request](https://www.reddit.com/r/Tomorrowland/comments/1uqzoc1/has_anyone_made_something_similar_to_this/), and [crew planner launch](https://www.reddit.com/r/Tomorrowland/comments/1ua0u48/tml_planner/).
+
+Positioning for launch:
+
+> The unofficial Tomorrowland route you can actually keep on your lock screen.
+
+Do not lead with email sync, databases, AI, or “all-in-one.” Lead with the wallpaper result. Mention calendar export second and plan restore only after the core value is clear.
+
+Execution for the live festival window is maintained in [LAUNCH_PLAYBOOK.md](./LAUNCH_PLAYBOOK.md).

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS product_events (
     'five_artists_selected',
     'timeline_viewed',
     'wallpaper_exported',
+    'wallpaper_shared',
     'support_opened'
   )),
   festival_date date,
@@ -28,6 +29,7 @@ ALTER TABLE product_events ADD CONSTRAINT product_events_event_name_check CHECK 
   'five_artists_selected',
   'timeline_viewed',
   'wallpaper_exported',
+  'wallpaper_shared',
   'support_opened'
 ));
 

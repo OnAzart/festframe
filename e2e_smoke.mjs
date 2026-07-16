@@ -36,6 +36,13 @@ const browser = await chromium.launch({ headless: true })
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true })
 const page = await context.newPage()
 await page.goto(baseUrl, { waitUntil: 'networkidle' })
+if (await page.title() !== 'Tomorrowland 2026 Planner | FestFrame') throw new Error('SEO title is missing')
+if (await page.locator('link[rel="canonical"]').getAttribute('href') !== 'https://festframe.vercel.app/') throw new Error('Canonical URL is missing')
+const structuredData = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent())
+if (!structuredData['@graph']?.some((item) => item['@type'] === 'WebApplication')) throw new Error('WebApplication schema is missing')
+for (const label of ['Privacy', 'Terms']) {
+  if (!(await page.getByRole('link', { name: label }).first().isVisible())) throw new Error(`${label} link is missing before planner entry`)
+}
 await page.getByLabel('Your email').fill('tester@example.com')
 await page.getByRole('button', { name: 'Plan My Fest' }).click()
 await page.getByRole('heading', { name: 'Build your day' }).waitFor()
@@ -124,6 +131,9 @@ await (await downloadPromise).saveAs(`${output}/plan.pdf`)
 downloadPromise = page.waitForEvent('download')
 await page.getByRole('button', { name: 'Lock-screen image iPhone 17 / 17 Pro · 1206×2622' }).click()
 await (await downloadPromise).saveAs(`${output}/botanical-consciousness-timeline.png`)
+downloadPromise = page.waitForEvent('download')
+await page.getByRole('button', { name: 'Share wallpaper Send the finished image from your phone' }).click()
+await (await downloadPromise).saveAs(`${output}/share-fallback.png`)
 await page.getByRole('button', { name: 'Consciousness' }).click()
 downloadPromise = page.waitForEvent('download')
 await page.getByRole('button', { name: 'Lock-screen image iPhone 17 / 17 Pro · 1206×2622' }).click()
@@ -154,10 +164,10 @@ await mobilePage.locator('.schedule-scroll').waitFor()
 if (await mobilePage.locator('.schedule-set').count() !== 1) throw new Error('My Schedule is incorrect on mobile')
 await mobilePage.screenshot({ path: `${output}/mobile.png`, fullPage: true })
 
-for (const file of ['plan.ics', 'plan.pdf', 'consciousness-desert-timeline.png', 'botanical-consciousness-timeline.png']) {
+for (const file of ['plan.ics', 'plan.pdf', 'consciousness-desert-timeline.png', 'botanical-consciousness-timeline.png', 'share-fallback.png']) {
   if ((await stat(`${output}/${file}`)).size < 200) throw new Error(`${file} was unexpectedly small`)
 }
-for (const file of ['consciousness-desert-timeline.png', 'botanical-consciousness-timeline.png']) {
+for (const file of ['consciousness-desert-timeline.png', 'botanical-consciousness-timeline.png', 'share-fallback.png']) {
   const png = await readFile(`${output}/${file}`)
   if (png.readUInt32BE(16) !== 1206 || png.readUInt32BE(20) !== 2622) throw new Error(`${file} is not sized for iPhone 17 / 17 Pro`)
 }

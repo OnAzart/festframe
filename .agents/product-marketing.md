@@ -1,6 +1,6 @@
 # Product Marketing Context
 
-*Last updated: 2026-07-15*
+*Last updated: 2026-07-16*
 
 ## Product Overview
 **Brand:** FestFrame  
@@ -9,8 +9,8 @@
 **One-liner:** Pick your artists and put your festival day on your lock screen.
 **What it does:** An unofficial, mobile-friendly festival planner that turns Must, Want, and Maybe selections into a personal timeline, calendar file, PDF, and phone wallpaper. Tomorrowland Belgium 2026 is the first dataset and validation market.
 **Product category:** Festival schedule planner
-**Product type:** Free web utility with optional one-time paid exports or supporter payments
-**Business model:** Free branded core output; test voluntary support first, then premium wallpaper and crew packs.
+**Product type:** Free web utility with optional email restore and voluntary support
+**Business model:** Free branded core output; test voluntary support first, then premium wallpaper and crew packs only after export demand is proven.
 
 ## Target Audience
 **Primary audience:** Tomorrowland attendees actively planning the final days before the festival, especially groups coordinating many stage clashes.
@@ -27,14 +27,16 @@
 **Emotional tension:** Fear of missing a must-see set, losing the group, or wasting festival time checking schedules.
 
 ## Competitive Landscape
-**Direct:** FestiPlannr, FestivPlanner, Festival Dust, SideQuest, and other fan-made timetable tools.
-**Primary alternative:** The official Tomorrowland app and its personalized lineup/poster.
+**Direct:** Festival Dust, SideQuest, Clashfinder, TML Crew, StageHopper, and other fan-made timetable tools.
+**Primary alternative:** The official Tomorrowland app, which now supports favorites and a personalized schedule.
 **Indirect:** Screenshots, Notes, spreadsheets, WhatsApp messages, and manually created phone wallpapers.
 
 ## Differentiation
 - Export-first workflow rather than a full festival companion app.
 - Must, Want, and Maybe priorities across a stage-grouped photo board and timeline.
 - Stage-colored, clock-safe lock-screen output with overlaps shown side by side.
+- Native sharing of the finished wallpaper and calendar/PDF fallback formats.
+- Optional email restore across devices without blocking guest use.
 - No conflict-resolution requirement; the attendee stays in control.
 - Potential friend-plan URL and combined crew wallpaper.
 
@@ -64,6 +66,6 @@
 
 ## Goals
 **Immediate business goal:** Validate demand during Tomorrowland Belgium 2026 with the smallest shippable product.
-**Primary conversion action:** Complete a day plan and download a branded wallpaper.
-**Secondary conversion action:** Share the plan or make a voluntary supporter payment.
-**Metrics:** Wallpaper downloads per completed plan, shares per download, supporter conversion, and friend-plan imports.
+**Primary conversion action:** Complete a day plan and export a branded wallpaper.
+**Secondary conversion action:** Share the wallpaper or make a voluntary supporter payment.
+**Metrics:** Five-set activation, wallpaper exports per planner open, native shares per export, and support-link intent. Acquisition is attributed with first-party UTM/referrer properties rather than ad pixels.

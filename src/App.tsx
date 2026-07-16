@@ -13,6 +13,7 @@ import {
   LockKeyhole,
   LogOut,
   Search,
+  Share2,
   Sparkles,
   Columns3,
   X,
@@ -23,7 +24,7 @@ import './App.css'
 type Priority = 'critical' | 'want' | 'like'
 type WallpaperTheme = 'consciousness-desert' | 'botanical-consciousness'
 type ViewMode = 'board' | 'timeline' | 'schedule'
-type AnalyticsEvent = 'planner_opened' | 'signup_completed' | 'email_submitted' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'support_opened'
+type AnalyticsEvent = 'planner_opened' | 'signup_completed' | 'email_submitted' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'wallpaper_shared' | 'support_opened'
 
 type Artist = {
   id: string
@@ -108,6 +109,26 @@ function trackEvent(eventName: AnalyticsEvent, context: { festivalDate?: string;
   }).catch(() => undefined)
 }
 
+function acquisitionProperties() {
+  const params = new URLSearchParams(window.location.search)
+  const properties: Record<string, string | boolean> = {
+    shareSupported: typeof navigator.share === 'function',
+  }
+  const trackedParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const
+  trackedParams.forEach((name) => {
+    const value = params.get(name)?.trim()
+    if (value) properties[name] = value.slice(0, 120)
+  })
+  if (document.referrer) {
+    try {
+      properties.referrer = new URL(document.referrer).hostname.slice(0, 120)
+    } catch {
+      // Ignore malformed browser referrers.
+    }
+  }
+  return properties
+}
+
 const dateFormatter = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
   day: 'numeric',
@@ -167,6 +188,11 @@ function resizePng(dataUrl: string, width: number, height: number) {
     image.onerror = () => reject(new Error('Export image could not be resized'))
     image.src = dataUrl
   })
+}
+
+async function dataUrlToBlob(dataUrl: string) {
+  const response = await fetch(dataUrl)
+  return response.blob()
 }
 
 function escapeIcs(value: string) {
@@ -332,7 +358,7 @@ function App() {
   useEffect(() => {
     if (!profile || !data || hasTrackedOpenRef.current) return
     hasTrackedOpenRef.current = true
-    trackEvent('planner_opened', { weekend })
+    trackEvent('planner_opened', { weekend, properties: acquisitionProperties() })
   }, [profile, data, weekend])
 
   const dates = useMemo(() => {
@@ -657,21 +683,44 @@ function App() {
     setToast('PDF downloaded.')
   }
 
-  async function exportIphoneImage() {
+  async function createWallpaperFile() {
     if (!selectedDaySets.length) return setToast('Choose at least one set before exporting.')
     if (!exportCardRef.current) return
+    const { toPng } = await import('html-to-image')
+    const dataUrl = await toPng(exportCardRef.current, { pixelRatio: 2, cacheBust: true })
+    const iphone17DataUrl = await resizePng(dataUrl, 1206, 2622)
+    const blob = await dataUrlToBlob(iphone17DataUrl)
+    return new File([blob], `festframe-${activeDate}-iphone.png`, { type: 'image/png' })
+  }
+
+  async function exportIphoneImage() {
     try {
-      const { toPng } = await import('html-to-image')
-      const dataUrl = await toPng(exportCardRef.current, { pixelRatio: 2, cacheBust: true })
-      const iphone17DataUrl = await resizePng(dataUrl, 1206, 2622)
-      const link = document.createElement('a')
-      link.download = `festframe-${activeDate}-iphone.png`
-      link.href = iphone17DataUrl
-      link.click()
-      trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length } })
+      const file = await createWallpaperFile()
+      if (!file) return
+      downloadBlob(file, file.name)
+      trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length, source: 'download' } })
       setToast('iPhone image downloaded.')
     } catch {
       setToast('Image export failed. Please try again.')
+    }
+  }
+
+  async function shareIphoneImage() {
+    try {
+      const file = await createWallpaperFile()
+      if (!file) return
+      if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'My FestFrame route', text: 'My Tomorrowland route, made with FestFrame.' })
+        trackEvent('wallpaper_shared', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length } })
+        setToast('Wallpaper shared.')
+        return
+      }
+      downloadBlob(file, file.name)
+      trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length, source: 'share_fallback' } })
+      setToast('Sharing is not available here, so the image was downloaded.')
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setToast('Wallpaper could not be shared. Please try again.')
     }
   }
 
@@ -731,6 +780,7 @@ function App() {
           </form>
           <div className="login-note"><Check size={15} /> Email restores your plan · skip keeps it on this device</div>
           <p className="login-privacy">Email restore is temporarily unverified. We do not send marketing emails without separate consent.</p>
+          <div className="legal-links"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><span>Unofficial planner</span></div>
         </section>
         {toast && <div className="toast">{toast}</div>}
         <Analytics />
@@ -843,6 +893,8 @@ function App() {
         </section>
       </>}
 
+      <footer className="site-footer"><span>FestFrame is an unofficial planner. Check the official timetable before you go.</span><nav aria-label="Legal"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></nav></footer>
+
       <div className={`iphone-export ${exportsOpen ? 'is-previewing' : ''}`} aria-hidden="true">
         <div className={`iphone-card ${selectedDaySets.length >= 15 ? 'is-packed' : selectedDaySets.length >= 9 ? 'is-dense' : ''}`} ref={exportCardRef}>
           <div className="iphone-artwork" style={{ backgroundImage: `url(${WALLPAPER_THEMES.find((theme) => theme.id === wallpaperTheme)?.image})` }} />
@@ -858,7 +910,7 @@ function App() {
         </div>
       </div>
 
-      {exportsOpen && <div className="modal-backdrop export-backdrop" role="presentation" onMouseDown={() => setExportsOpen(false)}><section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" onMouseDown={(event) => event.stopPropagation()}><button className="modal-close icon-button" onClick={() => setExportsOpen(false)} aria-label="Close export menu"><X size={18} /></button><p className="eyebrow">{activeDateLabel}</p><h2 id="export-title">Take your route with you.</h2><p>Select a wallpaper, then export this day. Everything is free.</p><div className="wallpaper-theme-picker" role="group" aria-label="Wallpaper style">{WALLPAPER_THEMES.map((theme) => <button key={theme.id} className={wallpaperTheme === theme.id ? 'selected' : ''} onClick={() => setWallpaperTheme(theme.id)} aria-pressed={wallpaperTheme === theme.id}><span style={{ backgroundImage: `url(${theme.image})` }} /><b>{theme.label}</b><Check size={15} /></button>)}</div><div className="export-options"><button onClick={exportCalendar}><CalendarDays size={22} /><span><b>Calendar file</b><small>Google, Apple & Outlook</small></span><ChevronRight size={17} /></button><button onClick={exportPdf}><FileText size={22} /><span><b>Print-ready PDF</b><small>One clean daily rundown</small></span><ChevronRight size={17} /></button><button className="featured-export" onClick={exportIphoneImage}><ImageDown size={22} /><span><b>Lock-screen image</b><small>iPhone 17 / 17 Pro · 1206×2622</small></span><ChevronRight size={17} /></button></div>{SUPPORT_URL && <a className="support-link" href={SUPPORT_URL} target="_blank" rel="noreferrer" onClick={() => trackEvent('support_opened', { festivalDate: activeDate, weekend })}><Heart size={18} /><span><b>Keep the planner free</b><small>Optional one-time contribution</small></span><ChevronRight size={16} /></a>}</section></div>}
+      {exportsOpen && <div className="modal-backdrop export-backdrop" role="presentation" onMouseDown={() => setExportsOpen(false)}><section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" onMouseDown={(event) => event.stopPropagation()}><button className="modal-close icon-button" onClick={() => setExportsOpen(false)} aria-label="Close export menu"><X size={18} /></button><p className="eyebrow">{activeDateLabel}</p><h2 id="export-title">Take your route with you.</h2><p>Select a wallpaper, then export this day. Everything is free.</p><div className="wallpaper-theme-picker" role="group" aria-label="Wallpaper style">{WALLPAPER_THEMES.map((theme) => <button key={theme.id} className={wallpaperTheme === theme.id ? 'selected' : ''} onClick={() => setWallpaperTheme(theme.id)} aria-pressed={wallpaperTheme === theme.id}><span style={{ backgroundImage: `url(${theme.image})` }} /><b>{theme.label}</b><Check size={15} /></button>)}</div><div className="export-options"><button onClick={exportCalendar}><CalendarDays size={22} /><span><b>Calendar file</b><small>Google, Apple & Outlook</small></span><ChevronRight size={17} /></button><button onClick={exportPdf}><FileText size={22} /><span><b>Print-ready PDF</b><small>One clean daily rundown</small></span><ChevronRight size={17} /></button><button className="featured-export" onClick={exportIphoneImage}><ImageDown size={22} /><span><b>Lock-screen image</b><small>iPhone 17 / 17 Pro · 1206×2622</small></span><ChevronRight size={17} /></button><button className="share-export" onClick={shareIphoneImage}><Share2 size={22} /><span><b>Share wallpaper</b><small>Send the finished image from your phone</small></span><ChevronRight size={17} /></button></div>{SUPPORT_URL && <a className="support-link" href={SUPPORT_URL} target="_blank" rel="noreferrer" onClick={() => trackEvent('support_opened', { festivalDate: activeDate, weekend })}><Heart size={18} /><span><b>Keep the planner free</b><small>Optional one-time contribution</small></span><ChevronRight size={16} /></a>}</section></div>}
       {toast && <div className="toast" role="status">{toast}</div>}
       <Analytics />
     </main>

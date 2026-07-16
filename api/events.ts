@@ -10,6 +10,7 @@ const allowedEvents = new Set([
   'five_artists_selected',
   'timeline_viewed',
   'wallpaper_exported',
+  'wallpaper_shared',
   'support_opened',
 ])
 

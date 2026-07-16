@@ -56,13 +56,17 @@ npx vercel --prod
 - [x] Country code collection without storing raw IP.
 - [x] Ko-fi support destination.
 - [x] Calendar, PDF, and iPhone 17/17 Pro wallpaper exports.
+- [x] Native mobile wallpaper sharing with a download fallback.
 - [x] Automated desktop/mobile and wallpaper safe-area tests.
-- [ ] Publish a Privacy Policy with the operator's legal name or trading identity and contact email.
+- [x] Publish Privacy and Terms pages with the current project identity and data flow.
+- [x] Publish canonical metadata, sitemap, robots rules, and WebApplication schema.
+- [ ] Add the operator's legal name or trading identity and a private contact email to the Privacy Policy.
 - [ ] Add a documented email-data deletion request channel.
 - [ ] Replace temporary email lookup with verified OTP or magic-link sign-in.
 - [ ] Test PNG and ICS output on real iPhone and Android devices.
 - [ ] Recheck W1/W2 timetable snapshots against official updates.
 - [ ] Add consent UI before loading Meta Pixel or other advertising cookies.
+- [ ] Verify `https://festframe.vercel.app` in Google Search Console and submit `/sitemap.xml`.
 
 ## Updating Timetables
 

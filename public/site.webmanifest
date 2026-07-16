@@ -1,9 +1,14 @@
 {
   "name": "FestFrame",
   "short_name": "FestFrame",
-  "description": "Your festival day, made for your lock screen.",
+  "description": "Plan Tomorrowland Belgium 2026 and export your route for your lock screen.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
+  "lang": "en",
+  "categories": ["travel", "lifestyle", "utilities"],
   "background_color": "#f7f4ec",
   "theme_color": "#101422",
   "icons": [

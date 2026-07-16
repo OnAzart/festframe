@@ -1,0 +1,17 @@
+:root { color-scheme:light; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#171b2a; background:#f7f4ec; }
+* { box-sizing:border-box; }
+body { margin:0; }
+a { color:#147a70; }
+.legal-shell { width:min(760px,calc(100% - 32px)); margin:0 auto; padding:28px 0 72px; }
+.legal-nav { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:24px; border-bottom:1px solid #d9d5ca; }
+.legal-brand { color:#171b2a; font-weight:800; text-decoration:none; }
+.legal-brand span { color:#e6a90e; }
+.legal-nav div { display:flex; gap:16px; font-size:14px; }
+.legal-header { padding:54px 0 28px; }
+.legal-header p { color:#626a7d; }
+h1 { margin:0; font-size:clamp(38px,7vw,64px); line-height:1; letter-spacing:0; }
+h2 { margin:34px 0 10px; font-size:21px; letter-spacing:0; }
+p,li { color:#434a5b; font-size:15px; line-height:1.65; }
+ul { padding-left:22px; }
+.notice { margin:24px 0; padding:16px 18px; border-left:4px solid #2bc4b0; background:#fff; }
+.legal-footer { margin-top:48px; padding-top:20px; border-top:1px solid #d9d5ca; color:#73798a; font-size:13px; }

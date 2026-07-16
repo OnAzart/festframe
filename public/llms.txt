@@ -1,0 +1,11 @@
+# FestFrame
+
+FestFrame is a free, unofficial web planner for Tomorrowland Belgium 2026.
+
+Users can classify performances as Must, Want, or Maybe; compare sets on a stage timeline; and export a personal route as an iPhone lock-screen wallpaper, calendar file, or PDF.
+
+Canonical URL: https://festframe.vercel.app/
+Privacy: https://festframe.vercel.app/privacy.html
+Terms: https://festframe.vercel.app/terms.html
+
+FestFrame is not affiliated with, endorsed by, or an official service of Tomorrowland.
