@@ -42,7 +42,7 @@
 | Objection | Response |
 |-----------|----------|
 | The official app already has my lineup. | FestFrame focuses on a priority-based, glanceable lock-screen schedule and export formats. |
-| I do not want an account. | Email is optional: skip it and keep the route on this device. |
+| I do not want an account. | Email is optional: use it to restore the route across devices, or skip it and keep the route on this device. |
 | Timetables may change. | Label the snapshot date clearly and direct users to verify official updates. |
 | Why should I pay? | Keep the useful branded wallpaper free; charge only for premium visual or crew outputs. |
 

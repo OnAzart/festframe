@@ -1,6 +1,6 @@
 # FestFrame
 
-A Vite-powered personal festival planner for Tomorrowland Belgium 2026. Email is optional, routes stay on the user's device, and submitted email plus country code are stored in Neon Postgres.
+A Vite-powered personal festival planner for Tomorrowland Belgium 2026. Email is optional; email profiles restore festival plans across devices through Neon Postgres, while skipped profiles remain on-device.
 
 - [Marketing strategy](./MARKETING_STRATEGY.md)
 - [Deployment guide and launch checklist](./DEPLOYMENT.md)
@@ -34,6 +34,6 @@ The export menu includes the `Consciousness` and `Botanical` lock-screen backgro
 
 ## Privacy and login
 
-People can enter an email or skip directly to the planner. The selected route is cached locally on that device. When an email is submitted, Vercel supplies a two-letter country code to the API; FestFrame does not persist raw IP addresses or send marketing email without separate consent.
+People can enter an email or skip directly to the planner. Email profiles sync the selected route through a hashed email lookup; skipped profiles remain local to that device. This temporary restore does not verify email ownership yet. Vercel supplies a two-letter country code to the API; FestFrame does not persist raw IP addresses or send marketing email without separate consent.
 
 Meta Pixel is not active. See [the marketing strategy](./MARKETING_STRATEGY.md#13-meta-pixel-implementation-gate) before adding advertising tracking.

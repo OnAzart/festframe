@@ -42,6 +42,11 @@ type Performance = {
 }
 
 type FestivalData = { performances: Performance[] }
+type SavedPlan = {
+  priorities: Record<string, Priority>
+  weekend: 'w1' | 'w2'
+  wallpaperTheme: WallpaperTheme
+}
 
 const priorityMeta: Record<Priority, { label: string; color: string; weight: number; icon: LucideIcon }> = {
   critical: { label: 'Must', color: '#ff5b4d', weight: 3, icon: LockKeyhole },
@@ -85,6 +90,7 @@ function stageColor(stageName: string) {
 const storageKeys = {
   profile: 'daymark-profile',
   leadId: 'festframe-lead-id',
+  planOwner: 'festframe-plan-owner',
   priorities: 'daymark-priorities',
   weekend: 'daymark-weekend',
   wallpaperTheme: 'daymark-wallpaper-theme',
@@ -204,6 +210,7 @@ function PriorityPicker({
 
 function App() {
   const [localProfile, setLocalProfile] = useState<string | null>(() => localStorage.getItem(storageKeys.profile))
+  const [cloudReadyEmail, setCloudReadyEmail] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [weekend, setWeekend] = useState<'w1' | 'w2'>(() => (localStorage.getItem(storageKeys.weekend) as 'w1' | 'w2') || 'w1')
   const [data, setData] = useState<FestivalData | null>(null)
@@ -253,6 +260,67 @@ function App() {
   useEffect(() => {
     localStorage.setItem(storageKeys.wallpaperTheme, wallpaperTheme)
   }, [wallpaperTheme])
+
+  useEffect(() => {
+    if (!profile?.includes('@')) {
+      setCloudReadyEmail(null)
+      return
+    }
+
+    const controller = new AbortController()
+    const profileEmail = profile
+    setCloudReadyEmail(null)
+    fetch('/api/plans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: profileEmail }),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Cloud plan could not be loaded')
+        return response.json() as Promise<{ plan: SavedPlan | null }>
+      })
+      .then(({ plan }) => {
+        if (plan) {
+          setPriorities(plan.priorities)
+          setWeekend(plan.weekend)
+          setWallpaperTheme(plan.wallpaperTheme)
+          setToast('Your saved plan is back.')
+        } else {
+          const previousOwner = localStorage.getItem(storageKeys.planOwner)
+          if (previousOwner && previousOwner !== 'guest' && previousOwner !== profileEmail) {
+            setPriorities({})
+            setWeekend('w1')
+            setWallpaperTheme('botanical-consciousness')
+          }
+        }
+        localStorage.setItem(storageKeys.planOwner, profileEmail)
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          setToast('Using the plan saved on this device. Cloud sync will retry.')
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCloudReadyEmail(profileEmail)
+      })
+
+    return () => controller.abort()
+  }, [profile])
+
+  useEffect(() => {
+    if (!profile?.includes('@') || cloudReadyEmail !== profile) return
+    const timer = window.setTimeout(() => {
+      void fetch('/api/plans', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: profile, priorities, weekend, wallpaperTheme }),
+      }).then((response) => {
+        if (!response.ok) throw new Error('Cloud save failed')
+      }).catch(() => setToast('Plan saved on this device. Cloud sync will retry.'))
+    }, 650)
+    return () => window.clearTimeout(timer)
+  }, [profile, cloudReadyEmail, priorities, weekend, wallpaperTheme])
 
   useEffect(() => {
     if (!toast) return
@@ -511,6 +579,7 @@ function App() {
 
   function enterAsGuest() {
     localStorage.setItem(storageKeys.profile, 'guest')
+    localStorage.setItem(storageKeys.planOwner, 'guest')
     setLocalProfile('guest')
   }
 
@@ -659,12 +728,16 @@ function App() {
             <button type="submit" className="primary-button">Plan My Fest <ChevronRight size={18} /></button>
             <button type="button" className="skip-button" onClick={enterAsGuest}>Skip for now</button>
           </form>
-          <div className="login-note"><Check size={15} /> No password · your plan stays on this device</div>
-          <p className="login-privacy">Email is optional. We store it with your FestFrame profile; no marketing emails without separate consent.</p>
+          <div className="login-note"><Check size={15} /> Email restores your plan · skip keeps it on this device</div>
+          <p className="login-privacy">Email restore is temporarily unverified. We do not send marketing emails without separate consent.</p>
         </section>
         {toast && <div className="toast">{toast}</div>}
       </main>
     )
+  }
+
+  if (profile.includes('@') && cloudReadyEmail !== profile) {
+    return <main className="loading-state"><Sparkles size={18} /> Restoring your festival plan...</main>
   }
 
   return (

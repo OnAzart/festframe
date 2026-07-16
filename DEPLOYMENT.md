@@ -1,6 +1,6 @@
 # FestFrame Deployment
 
-FestFrame is a Vite app deployed to Vercel with serverless API routes, Neon analytics storage, and a separate Neon database for optional email profiles and country codes.
+FestFrame is a Vite app deployed to Vercel with serverless API routes, Neon analytics storage, and a separate Neon database for optional email profiles, country codes, and festival-plan sync.
 
 ## Current Production Setup
 
@@ -33,7 +33,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/schema.sql
 psql "$AUTHDB_DATABASE_URL" -v ON_ERROR_STOP=1 -f db/auth-schema.sql
 ```
 
-`db/schema.sql` owns anonymous product events and country code. `db/auth-schema.sql` owns optional email leads and keeps the reserved profile/plan tables for a future verified sync feature. Current routes stay in local storage.
+`db/schema.sql` owns anonymous product events and country code. `db/auth-schema.sql` owns optional email leads and hashed-email festival plans. Email profiles sync through `/api/plans`; skipped profiles stay in local storage. The older Auth tables remain reserved for future verified sync.
 
 ## Deploy
 
@@ -51,14 +51,15 @@ npx vercel --prod
 ## Public Launch Checklist
 
 - [x] Optional email capture with a no-email skip path.
-- [x] Local festival-plan storage on the user's device.
+- [x] Automatic cross-device plan restore for email profiles.
+- [x] Local festival-plan storage for skipped profiles.
 - [x] Country code collection without storing raw IP.
 - [x] Ko-fi support destination.
 - [x] Calendar, PDF, and iPhone 17/17 Pro wallpaper exports.
 - [x] Automated desktop/mobile and wallpaper safe-area tests.
 - [ ] Publish a Privacy Policy with the operator's legal name or trading identity and contact email.
 - [ ] Add a documented email-data deletion request channel.
-- [ ] Add verified sign-in only when cross-device plan restore is introduced.
+- [ ] Replace temporary email lookup with verified OTP or magic-link sign-in.
 - [ ] Test PNG and ICS output on real iPhone and Android devices.
 - [ ] Recheck W1/W2 timetable snapshots against official updates.
 - [ ] Add consent UI before loading Meta Pixel or other advertising cookies.
