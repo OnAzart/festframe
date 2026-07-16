@@ -105,14 +105,14 @@ const wallpaperSafeArea = await page.locator('.iphone-export.is-previewing .ipho
     }),
     priorityMarkerColors: [...new Set(sets.map((set) => getComputedStyle(set).borderLeftColor))],
     minimumSetHeight: Math.min(...sets.map((set) => Number.parseFloat(getComputedStyle(set).minHeight))),
-    minimumArtistFontSize: Math.min(...sets.filter((set) => !set.classList.contains('is-narrow')).map((set) => Number.parseFloat(getComputedStyle(set.querySelector('strong')).fontSize))),
+    artistFontSizes: [...new Set(sets.map((set) => getComputedStyle(set.querySelector('strong')).fontSize))],
     legendAlignedRight: getComputedStyle(card.querySelector('.wallpaper-priority-legend')).justifyContent === 'flex-end',
     priorityLegend: [...card.querySelectorAll('.wallpaper-priority-legend span')].map((item) => item.textContent?.trim()),
   }
 })
 if (!wallpaperSafeArea || wallpaperSafeArea.timelineBottomRatio > 0.86 || !wallpaperSafeArea.allSetsVisible) throw new Error('Wallpaper schedule leaves the iPhone safe area')
 if (!wallpaperSafeArea.stageLabelsVisible || !wallpaperSafeArea.priorityMarkersVisible || wallpaperSafeArea.priorityMarkerColors.length < 3) throw new Error('Wallpaper is missing stage or priority signals')
-if (wallpaperSafeArea.minimumSetHeight < 36 || wallpaperSafeArea.minimumArtistFontSize < 11 || !wallpaperSafeArea.legendAlignedRight) throw new Error('Dense wallpaper typography or legend regressed')
+if (wallpaperSafeArea.minimumSetHeight < 36 || wallpaperSafeArea.artistFontSizes.join(',') !== '11px' || !wallpaperSafeArea.legendAlignedRight) throw new Error('Dense wallpaper typography or legend regressed')
 if (wallpaperSafeArea.priorityLegend.join(',') !== 'Must,Want,Maybe') throw new Error('Wallpaper priority legend is missing')
 
 let downloadPromise = page.waitForEvent('download')
