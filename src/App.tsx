@@ -26,6 +26,12 @@ type WallpaperTheme = 'consciousness-desert' | 'botanical-consciousness'
 type ViewMode = 'board' | 'timeline' | 'schedule'
 type AnalyticsEvent = 'planner_opened' | 'signup_completed' | 'email_submitted' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'wallpaper_shared' | 'support_opened'
 
+type FontDocument = Document & {
+  fonts?: {
+    ready: Promise<unknown>
+  }
+}
+
 type Artist = {
   id: string
   name: string
@@ -83,6 +89,7 @@ const WALLPAPER_THEMES: { id: WallpaperTheme; label: string; image: string }[] =
   { id: 'consciousness-desert', label: 'Consciousness', image: '/wallpapers/consciousness-desert.png' },
   { id: 'botanical-consciousness', label: 'Botanical', image: '/wallpapers/botanical-consciousness.png' },
 ]
+const DEFAULT_WALLPAPER_THEME = WALLPAPER_THEMES[0]
 
 function stageColor(stageName: string) {
   const index = STAGE_ORDER.indexOf(stageName)
@@ -683,9 +690,23 @@ function App() {
     setToast('PDF downloaded.')
   }
 
+  async function waitForWallpaperExportAssets() {
+    const fontDocument = document as FontDocument
+    await fontDocument.fonts?.ready
+    const artworkUrl = WALLPAPER_THEMES.find((theme) => theme.id === wallpaperTheme)?.image ?? DEFAULT_WALLPAPER_THEME.image
+    await new Promise<void>((resolve, reject) => {
+      const artwork = new Image()
+      artwork.decoding = 'async'
+      artwork.onload = () => resolve()
+      artwork.onerror = () => reject(new Error('Wallpaper artwork failed to load'))
+      artwork.src = artworkUrl
+    })
+  }
+
   async function createWallpaperFile() {
     if (!selectedDaySets.length) return setToast('Choose at least one set before exporting.')
     if (!exportCardRef.current) return
+    await waitForWallpaperExportAssets()
     const { toPng } = await import('html-to-image')
     const dataUrl = await toPng(exportCardRef.current, { pixelRatio: 2, cacheBust: true })
     const iphone17DataUrl = await resizePng(dataUrl, 1206, 2622)
@@ -897,7 +918,7 @@ function App() {
 
       <div className={`iphone-export ${exportsOpen ? 'is-previewing' : ''}`} aria-hidden="true">
         <div className={`iphone-card ${selectedDaySets.length >= 15 ? 'is-packed' : selectedDaySets.length >= 9 ? 'is-dense' : ''}`} ref={exportCardRef}>
-          <div className="iphone-artwork" style={{ backgroundImage: `url(${WALLPAPER_THEMES.find((theme) => theme.id === wallpaperTheme)?.image})` }} />
+          <img className="iphone-artwork" src={WALLPAPER_THEMES.find((theme) => theme.id === wallpaperTheme)?.image ?? DEFAULT_WALLPAPER_THEME.image} alt="" decoding="sync" fetchPriority="high" />
           <div className="iphone-shade" />
           <div className="iphone-head"><div className="iphone-brand"><span>FEST</span><i />FRAME</div><small>TOMORROWLAND BELGIUM 2026</small></div>
           <div className="iphone-title"><div><h2>{activeDateLabel}</h2><p>My route · {selectedDaySets.length} sets</p></div><span>{weekend.toUpperCase()}</span></div>
