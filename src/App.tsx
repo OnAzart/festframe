@@ -169,6 +169,18 @@ function eventLabel(performance: Performance) {
   return performance.name || performance.artists.map((artist) => artist.name).join(' b2b ')
 }
 
+function wallpaperEventLabel(performance: Performance) {
+  const primaryArtist = performance.artists[0]?.name?.trim()
+  const raw = eventLabel(performance).trim()
+  const simplified = raw
+    .replace(/\s+(presents|pres\.?|live|dj set)\b.*$/i, '')
+    .replace(/\s+feat\..*$/i, '')
+    .trim()
+  const preferred = simplified || primaryArtist || raw
+  const label = preferred.length >= raw.length && primaryArtist ? primaryArtist : preferred
+  return label.length > 21 ? `${label.slice(0, 18).trimEnd()}...` : label
+}
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -925,7 +937,7 @@ function App() {
           <div className="wallpaper-priority-legend" aria-label="Priority legend">{(Object.keys(priorityMeta) as Priority[]).map((priority) => <span key={priority}><i style={{ background: priorityMeta[priority].color }} />{priorityMeta[priority].label}</span>)}</div>
           <div className="wallpaper-timeline">
             <div className="wallpaper-hours">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <time key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }}>{timeFormatter.format(hour)}</time>)}</div>
-            <div className="wallpaper-track">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <i key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }} />)}{wallpaperLayout.items.map(({ performance, lane, columns, stacked, stackDepth, overlap, top, height }) => <div className={`wallpaper-set is-${priorities[performance.id]} ${height < 6.5 ? 'is-compact' : ''} ${columns >= 3 ? 'is-narrow' : ''} ${overlap ? 'has-overlap' : ''} ${stacked ? 'is-stacked' : ''}`} key={performance.id} style={{ top: `${top}%`, height: `${height}%`, minHeight: selectedDaySets.length >= 15 ? 32 : selectedDaySets.length >= 9 ? 36 : 34, left: `${lane / columns * 100}%`, width: `calc(${100 / columns}% - 3px)`, transform: stacked ? `translate(${4 + stackDepth * 2}px, ${3 + stackDepth * 4}px)` : undefined, zIndex: priorityMeta[priorities[performance.id]].weight * 10 + (stacked ? stackDepth : 0), '--stage-color': stageColor(performance.stage.name), '--priority-color': priorityMeta[priorities[performance.id]].color } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><span>{performance.stage.name}</span><strong>{eventLabel(performance)}</strong></div>)}</div>
+            <div className="wallpaper-track">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <i key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }} />)}{wallpaperLayout.items.map(({ performance, lane, columns, stacked, stackDepth, overlap, top, height }) => <div className={`wallpaper-set is-${priorities[performance.id]} ${height < 6.5 ? 'is-compact' : ''} ${columns >= 3 ? 'is-narrow' : ''} ${overlap ? 'has-overlap' : ''} ${stacked ? 'is-stacked' : ''}`} key={performance.id} style={{ top: `${top}%`, height: `${height}%`, minHeight: 36, left: `${lane / columns * 100}%`, width: `calc(${100 / columns}% - 3px)`, transform: stacked ? `translate(${4 + stackDepth * 2}px, ${3 + stackDepth * 4}px)` : undefined, zIndex: priorityMeta[priorities[performance.id]].weight * 10 + (stacked ? stackDepth : 0), '--stage-color': stageColor(performance.stage.name), '--priority-color': priorityMeta[priorities[performance.id]].color } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><strong>{wallpaperEventLabel(performance)}</strong><span>{performance.stage.name}</span></div>)}</div>
           </div>
           <footer><span>{wallpaperLayout.hidden ? `+${wallpaperLayout.hidden} more in the app` : overlappingSetCount ? 'Overlaps shown side by side' : 'Ready for the day'}</span><b>MADE WITH FESTFRAME</b></footer>
         </div>
