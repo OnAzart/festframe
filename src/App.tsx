@@ -597,14 +597,7 @@ function App() {
       const laneEnds: number[] = []
       const laneStackDepths: number[] = []
       const maxColumns = 2
-      const placementOrder = [...cluster].sort((left, right) => {
-        const priorityDelta = priorityMeta[priorities[right.id]].weight - priorityMeta[priorities[left.id]].weight
-        if (priorityDelta) return priorityDelta
-        const startDelta = localDate(left.startTime).getTime() - localDate(right.startTime).getTime()
-        if (startDelta) return startDelta
-        return localDate(right.endTime).getTime() - localDate(left.endTime).getTime()
-      })
-      const placed = placementOrder.map((performance) => {
+      const placed = cluster.map((performance) => {
         const start = localDate(performance.startTime).getTime()
         const end = localDate(performance.endTime).getTime()
         let lane = laneEnds.findIndex((laneEnd) => laneEnd <= start + 60_000)
@@ -1008,9 +1001,9 @@ function App() {
           <div className="wallpaper-timeline">
             <div className="wallpaper-hours">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <time key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }}>{timeFormatter.format(hour)}</time>)}</div>
             <div className="wallpaper-track">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <i key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }} />)}{wallpaperLayout.items.map(({ performance, lane, columns, stacked, stackDepth, overlap, top, height }) => {
-              const left = columns === 1 ? '0%' : lane === 0 ? '0%' : '54%'
-              const width = columns === 1 ? 'calc(100% - 3px)' : lane === 0 ? 'calc(54% - 3px)' : 'calc(46% - 3px)'
-              return <div className={`wallpaper-set is-${priorities[performance.id]} ${height < 6.5 ? 'is-compact' : ''} ${columns >= 3 ? 'is-narrow' : ''} ${overlap ? 'has-overlap' : ''} ${stacked ? 'is-stacked' : ''} ${lane === 0 ? 'is-primary-lane' : 'is-secondary-lane'}`} key={performance.id} style={{ top: `${top}%`, height: `${height}%`, minHeight: 36, left, width, transform: stacked ? `translate(${4 + stackDepth * 2}px, ${3 + stackDepth * 4}px)` : undefined, zIndex: priorityMeta[priorities[performance.id]].weight * 10 + (stacked ? stackDepth : 0), '--stage-color': stageColor(performance.stage.name), '--priority-color': priorityMeta[priorities[performance.id]].color } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><strong>{wallpaperEventLabel(performance)}</strong><span>{wallpaperStageLabel(performance.stage.name)}</span></div>
+              const left = columns === 1 ? '0%' : lane === 0 ? '0%' : '50.5%'
+              const width = columns === 1 ? 'calc(100% - 3px)' : 'calc(49.5% - 3px)'
+              return <div className={`wallpaper-set is-${priorities[performance.id]} ${height < 6.5 ? 'is-compact' : ''} ${columns >= 3 ? 'is-narrow' : ''} ${overlap ? 'has-overlap' : ''} ${stacked ? 'is-stacked' : ''}`} key={performance.id} style={{ top: `${top}%`, height: `${height}%`, minHeight: 36, left, width, transform: stacked ? `translate(${4 + stackDepth * 2}px, ${3 + stackDepth * 4}px)` : undefined, zIndex: priorityMeta[priorities[performance.id]].weight * 10 + (stacked ? stackDepth : 0), '--stage-color': stageColor(performance.stage.name), '--priority-color': priorityMeta[priorities[performance.id]].color } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><strong>{wallpaperEventLabel(performance)}</strong><span>{wallpaperStageLabel(performance.stage.name)}</span></div>
             })}</div>
           </div>
           <footer><span>{wallpaperLayout.hidden ? `+${wallpaperLayout.hidden} more in the app` : overlappingSetCount ? 'Overlaps shown side by side' : 'Ready for the day'}</span><b>MADE WITH FESTFRAME</b></footer>
