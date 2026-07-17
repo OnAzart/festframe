@@ -983,7 +983,7 @@ function App() {
       <footer className="site-footer"><span>FestFrame is an unofficial planner. Check the official timetable before you go.</span><nav aria-label="Legal"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></nav></footer>
 
       <div className={`iphone-export ${exportsOpen ? 'is-previewing' : ''}`} aria-hidden="true">
-        <div className={`iphone-card ${selectedDaySets.length >= 15 ? 'is-packed' : selectedDaySets.length >= 9 ? 'is-dense' : ''}`} ref={exportCardRef}>
+        <div className={`iphone-card ${selectedDaySets.length >= 15 ? 'is-packed' : selectedDaySets.length >= 9 ? 'is-dense' : selectedDaySets.length <= 6 ? 'is-sparse' : ''}`} ref={exportCardRef}>
           <img className="iphone-artwork" src={WALLPAPER_THEMES.find((theme) => theme.id === wallpaperTheme)?.image ?? DEFAULT_WALLPAPER_THEME.image} alt="" decoding="sync" fetchPriority="high" />
           <div className="iphone-shade" />
           <div className="iphone-head"><div className="iphone-brand"><span>FEST</span><i />FRAME</div><small>TOMORROWLAND BELGIUM 2026</small></div>
