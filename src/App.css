@@ -50,12 +50,14 @@
 .wallpaper-hours time,.iphone-card footer { text-shadow:0 1px 4px #000; }
 .wallpaper-track > i { border-top-color:rgba(224,229,237,.32); }
 .wallpaper-set { background:rgba(20,26,44,.88); box-shadow:0 2px 8px rgba(0,0,0,.26),0 0 0 1px rgba(255,255,255,.09); }
-.wallpaper-set time { color:#dbe2ee; }
-.wallpaper-set span { color:var(--stage-color); }
+.wallpaper-set time { display:block; max-width:38%; overflow:hidden; color:#dbe2ee; font:8px 'DM Mono',monospace; white-space:nowrap; }
+.wallpaper-set strong { display:block; margin-top:2px; max-width:calc(100% - 72px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; line-height:1.05; }
+.wallpaper-set span { position:absolute; top:4px; right:6px; max-width:56%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#929eb4; text-align:right; font:6px 'DM Mono',monospace; }
 .wallpaper-set.has-overlap { background:rgba(20,26,44,.78); }
 .wallpaper-set.is-stacked { background:rgba(20,26,44,.66); }
 .wallpaper-set.is-narrow { padding-inline:5px; }
-.wallpaper-set.is-narrow span { right:4px; max-width:52%; font-size:5px; }
+.wallpaper-set.is-narrow strong { max-width:calc(100% - 56px); }
+.wallpaper-set.is-narrow span { right:4px; max-width:48%; font-size:5px; }
 .wallpaper-set.has-overlap.is-critical { background:rgba(20,26,44,.94); box-shadow:0 2px 10px rgba(0,0,0,.38),0 0 0 1px rgba(255,255,255,.15); }
 .wallpaper-set.has-overlap.is-want { background:rgba(20,26,44,.82); }
 .wallpaper-set.has-overlap.is-like { background:rgba(20,26,44,.70); }
@@ -125,7 +127,8 @@
 .wallpaper-priority-legend span { display:flex; align-items:center; gap:4px; }.wallpaper-priority-legend i { width:13px; height:3px; display:block; box-shadow:0 1px 3px rgba(0,0,0,.45); }
 .iphone-card .wallpaper-timeline { margin-top:8px; }
 .wallpaper-set { background:rgba(20,26,44,.88); border-top:0; border-left-color:var(--priority-color); }
-.wallpaper-set span { display:block; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#929eb4; font:7px 'DM Mono',monospace; }
+.wallpaper-set.is-compact strong { max-width:100%; font-size:10px; }
+.wallpaper-set.is-compact span { display:none; }
 .wallpaper-set.has-overlap,.wallpaper-set.has-overlap.is-critical,.wallpaper-set.has-overlap.is-want,.wallpaper-set.has-overlap.is-like { background:rgba(20,26,44,.80); }.wallpaper-set.is-stacked { background:rgba(20,26,44,.70); }
 .legal-links { display:flex; flex-wrap:wrap; gap:9px 14px; margin-top:14px; color:#5f6677; font:9px 'DM Mono',monospace; }
 .legal-links a { color:#5f6675; text-underline-offset:3px; }

@@ -176,8 +176,24 @@ function wallpaperEventLabel(performance: Performance) {
     .replace(/\s+(presents|pres\.?|live|dj set)\b.*$/i, '')
     .replace(/\s+feat\..*$/i, '')
     .trim()
-  const preferred = simplified || primaryArtist || raw
-  const label = preferred.length >= raw.length && primaryArtist ? primaryArtist : preferred
+
+  let label = simplified || primaryArtist || raw
+
+  if (/\s+b2b\s+/i.test(label) && label.length > 18) {
+    const [left, right] = label.split(/\s+b2b\s+/i)
+    const rightShort = right
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+    label = rightShort ? `${left} b2b ${rightShort}` : left
+  }
+
+  if (primaryArtist && label.length > 22 && primaryArtist.length < label.length) {
+    label = primaryArtist
+  }
+
   return label.length > 21 ? `${label.slice(0, 18).trimEnd()}...` : label
 }
 
