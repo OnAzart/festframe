@@ -1008,8 +1008,8 @@ function App() {
           <div className="wallpaper-timeline">
             <div className="wallpaper-hours">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <time key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }}>{timeFormatter.format(hour)}</time>)}</div>
             <div className="wallpaper-track">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <i key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }} />)}{wallpaperLayout.items.map(({ performance, lane, columns, stacked, stackDepth, overlap, top, height }) => {
-              const left = columns === 1 ? '0%' : lane === 0 ? '0%' : '50.5%'
-              const width = columns === 1 ? 'calc(100% - 3px)' : lane === 0 ? 'calc(52.5% - 3px)' : 'calc(49.5% - 3px)'
+              const left = columns === 1 ? '0%' : lane === 0 ? '0%' : '54%'
+              const width = columns === 1 ? 'calc(100% - 3px)' : lane === 0 ? 'calc(54% - 3px)' : 'calc(46% - 3px)'
               return <div className={`wallpaper-set is-${priorities[performance.id]} ${height < 6.5 ? 'is-compact' : ''} ${columns >= 3 ? 'is-narrow' : ''} ${overlap ? 'has-overlap' : ''} ${stacked ? 'is-stacked' : ''} ${lane === 0 ? 'is-primary-lane' : 'is-secondary-lane'}`} key={performance.id} style={{ top: `${top}%`, height: `${height}%`, minHeight: 36, left, width, transform: stacked ? `translate(${4 + stackDepth * 2}px, ${3 + stackDepth * 4}px)` : undefined, zIndex: priorityMeta[priorities[performance.id]].weight * 10 + (stacked ? stackDepth : 0), '--stage-color': stageColor(performance.stage.name), '--priority-color': priorityMeta[priorities[performance.id]].color } as React.CSSProperties}><time>{timeFormatter.format(localDate(performance.startTime))}</time><strong>{wallpaperEventLabel(performance)}</strong><span>{wallpaperStageLabel(performance.stage.name)}</span></div>
             })}</div>
           </div>
