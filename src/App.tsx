@@ -748,6 +748,7 @@ function App() {
       if (!file) return
       downloadBlob(file, file.name)
       trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length, source: 'download' } })
+      setExportsOpen(false)
       setToast('iPhone image downloaded.')
     } catch {
       setToast('Image export failed. Please try again.')
@@ -761,11 +762,13 @@ function App() {
       if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'My FestFrame route', text: 'My Tomorrowland route, made with FestFrame.' })
         trackEvent('wallpaper_shared', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length } })
+        setExportsOpen(false)
         setToast('Wallpaper shared.')
         return
       }
       downloadBlob(file, file.name)
       trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length, source: 'share_fallback' } })
+      setExportsOpen(false)
       setToast('Sharing is not available here, so the image was downloaded.')
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
