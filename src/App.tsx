@@ -235,13 +235,7 @@ async function deliverFile(blob: Blob, filename: string, options: { title?: stri
 
   if (isAppleMobileWebKit()) {
     const dataUrl = await blobToDataUrl(file)
-    const link = document.createElement('a')
-    link.href = dataUrl
-    link.target = '_blank'
-    link.rel = 'noopener'
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
+    window.location.assign(dataUrl)
     return 'opened'
   }
 
