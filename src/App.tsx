@@ -708,7 +708,7 @@ function App() {
     if (!exportCardRef.current) return
     await waitForWallpaperExportAssets()
     const { toPng } = await import('html-to-image')
-    const dataUrl = await toPng(exportCardRef.current, { pixelRatio: 2, cacheBust: true })
+    const dataUrl = await toPng(exportCardRef.current, { pixelRatio: 2, cacheBust: true, skipFonts: true })
     const iphone17DataUrl = await resizePng(dataUrl, 1206, 2622)
     const blob = await dataUrlToBlob(iphone17DataUrl)
     return new File([blob], `festframe-${activeDate}-iphone.png`, { type: 'image/png' })
