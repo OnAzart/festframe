@@ -208,6 +208,47 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function isAppleMobileWebKit() {
+  const ua = navigator.userAgent
+  const touchMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  const appleMobile = /iP(ad|hone|od)/.test(ua) || touchMac
+  const webkit = /WebKit/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua)
+  return appleMobile && webkit
+}
+
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Data URL conversion failed'))
+    reader.onerror = () => reject(reader.error || new Error('Data URL conversion failed'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function deliverFile(blob: Blob, filename: string, options: { title?: string; text?: string; preferNativeShareOnIOS?: boolean } = {}) {
+  const file = blob instanceof File ? blob : new File([blob], filename, { type: blob.type || 'application/octet-stream' })
+
+  if (options.preferNativeShareOnIOS && isAppleMobileWebKit() && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+    await navigator.share({ files: [file], title: options.title, text: options.text })
+    return 'shared'
+  }
+
+  if (isAppleMobileWebKit()) {
+    const dataUrl = await blobToDataUrl(file)
+    const link = document.createElement('a')
+    link.href = dataUrl
+    link.target = '_blank'
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    return 'opened'
+  }
+
+  downloadBlob(file, filename)
+  return 'downloaded'
+}
+
 function resizePng(dataUrl: string, width: number, height: number) {
   return new Promise<string>((resolve, reject) => {
     const image = new Image()
@@ -746,10 +787,10 @@ function App() {
     try {
       const file = await createWallpaperFile()
       if (!file) return
-      downloadBlob(file, file.name)
-      trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length, source: 'download' } })
+      const delivery = await deliverFile(file, file.name, { title: 'My FestFrame route', text: 'My Tomorrowland route, made with FestFrame.', preferNativeShareOnIOS: true })
+      trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length, source: delivery } })
       setExportsOpen(false)
-      setToast('iPhone image downloaded.')
+      setToast(delivery === 'shared' ? 'Wallpaper opened in the iPhone share sheet.' : delivery === 'opened' ? 'Wallpaper opened in a new tab. Press and hold to save it.' : 'iPhone image downloaded.')
     } catch {
       setToast('Image export failed. Please try again.')
     }
@@ -766,10 +807,10 @@ function App() {
         setToast('Wallpaper shared.')
         return
       }
-      downloadBlob(file, file.name)
-      trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length, source: 'share_fallback' } })
+      const delivery = await deliverFile(file, file.name, { title: 'My FestFrame route', text: 'My Tomorrowland route, made with FestFrame.' })
+      trackEvent('wallpaper_exported', { festivalDate: activeDate, weekend, properties: { theme: wallpaperTheme, selectedCount: selectedDaySets.length, source: delivery === 'downloaded' ? 'share_fallback' : delivery } })
       setExportsOpen(false)
-      setToast('Sharing is not available here, so the image was downloaded.')
+      setToast(delivery === 'opened' ? 'Sharing is not available here, so the wallpaper was opened in a new tab to save.' : 'Sharing is not available here, so the image was downloaded.')
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
       setToast('Wallpaper could not be shared. Please try again.')
