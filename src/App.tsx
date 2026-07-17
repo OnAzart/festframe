@@ -570,7 +570,15 @@ function App() {
 
   const wallpaperLayout = useMemo(() => {
     if (!wallpaperBounds) return { items: [], hours: [] as Date[], hidden: 0 }
-    const visible = selectedDaySets.slice(0, 20)
+    const wallpaperMaxSets = selectedDaySets.length > 11 ? 10 : 11
+    const visible = [...selectedDaySets]
+      .sort((left, right) => {
+        const priorityGap = priorityMeta[priorities[right.id]].weight - priorityMeta[priorities[left.id]].weight
+        if (priorityGap) return priorityGap
+        return localDate(left.startTime).getTime() - localDate(right.startTime).getTime()
+      })
+      .slice(0, wallpaperMaxSets)
+      .sort((left, right) => localDate(left.startTime).getTime() - localDate(right.startTime).getTime())
     const range = wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()
     const clusters: Performance[][] = []
     let clusterEnd = 0
@@ -625,9 +633,12 @@ function App() {
       cursor.setHours(cursor.getHours() + 2)
     }
     return { items, hours, hidden: Math.max(0, selectedDaySets.length - visible.length) }
-  }, [selectedDaySets, wallpaperBounds])
+  }, [selectedDaySets, wallpaperBounds, priorities])
 
   const activeDateLabel = activeDate ? dateFormatter.format(new Date(`${activeDate}T12:00:00`)) : ''
+  const wallpaperRouteLabel = wallpaperLayout.hidden
+    ? `My route · ${wallpaperLayout.items.length} of ${selectedDaySets.length} sets`
+    : `My route · ${selectedDaySets.length} sets`
 
   function choosePriority(id: string, priority: Priority) {
     setPriorities((current) => {
@@ -987,7 +998,7 @@ function App() {
           <img className="iphone-artwork" src={WALLPAPER_THEMES.find((theme) => theme.id === wallpaperTheme)?.image ?? DEFAULT_WALLPAPER_THEME.image} alt="" decoding="sync" fetchPriority="high" />
           <div className="iphone-shade" />
           <div className="iphone-head"><div className="iphone-brand"><span>FEST</span><i />FRAME</div><small>TOMORROWLAND BELGIUM 2026</small></div>
-          <div className="iphone-title"><div><h2>{activeDateLabel}</h2><p>My route · {selectedDaySets.length} sets</p></div><span>{weekend.toUpperCase()}</span></div>
+          <div className="iphone-title"><div><h2>{activeDateLabel}</h2><p>{wallpaperRouteLabel}</p></div><span>{weekend.toUpperCase()}</span></div>
           <div className="wallpaper-priority-legend" aria-label="Priority legend">{(Object.keys(priorityMeta) as Priority[]).map((priority) => <span key={priority}><i style={{ background: priorityMeta[priority].color }} />{priorityMeta[priority].label}</span>)}</div>
           <div className="wallpaper-timeline">
             <div className="wallpaper-hours">{wallpaperBounds && wallpaperLayout.hours.map((hour) => <time key={hour.toISOString()} style={{ top: `${(hour.getTime() - wallpaperBounds.start.getTime()) / (wallpaperBounds.end.getTime() - wallpaperBounds.start.getTime()) * 100}%` }}>{timeFormatter.format(hour)}</time>)}</div>
