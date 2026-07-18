@@ -194,7 +194,7 @@ function wallpaperEventLabel(performance: Performance) {
     label = primaryArtist
   }
 
-  return label.length > 28 ? `${label.slice(0, 25).trimEnd()}...` : label
+  return label.length > 40 ? `${label.slice(0, 37).trimEnd()}...` : label
 }
 
 function wallpaperStageLabel(stageName: string) {
