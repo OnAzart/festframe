@@ -317,6 +317,7 @@ function App() {
   const [localProfile, setLocalProfile] = useState<string | null>(() => localStorage.getItem(storageKeys.profile))
   const [cloudReadyEmail, setCloudReadyEmail] = useState<string | null>(null)
   const [email, setEmail] = useState('')
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const [weekend, setWeekend] = useState<'w1' | 'w2'>(() => (localStorage.getItem(storageKeys.weekend) as 'w1' | 'w2') || 'w1')
   const [data, setData] = useState<FestivalData | null>(null)
   const [priorities, setPriorities] = useState<Record<string, Priority>>(() => {
@@ -667,7 +668,7 @@ function App() {
     void fetch('/api/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visitorId, email: normalized }),
+      body: JSON.stringify({ visitorId, email: normalized, marketingConsent }),
     }).catch(() => undefined)
   }
 
@@ -859,11 +860,12 @@ function App() {
           <form onSubmit={enterPlanner} className="login-form">
             <label htmlFor="email">Your email <small>optional</small></label>
             <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" type="email" autoComplete="email" />
+            <label className="consent-check" htmlFor="marketing-consent"><input id="marketing-consent" type="checkbox" checked={marketingConsent} onChange={(event) => setMarketingConsent(event.target.checked)} /><span>I’d like occasional FestFrame product updates by email. Optional.</span></label>
             <button type="submit" className="primary-button">Plan My Fest <ChevronRight size={18} /></button>
             <button type="button" className="skip-button" onClick={enterAsGuest}>Skip for now</button>
           </form>
           <div className="login-note"><Check size={15} /> Email restores your plan · skip keeps it on this device</div>
-          <p className="login-privacy">Email restore is temporarily unverified. We do not send marketing emails without separate consent.</p>
+          <p className="login-privacy">Marketing email is opt-in only. Email restore is temporarily unverified.</p>
           <div className="legal-links"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><span>Unofficial planner</span></div>
         </section>
         {toast && <div className="toast">{toast}</div>}

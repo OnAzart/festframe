@@ -19,9 +19,16 @@ CREATE TABLE IF NOT EXISTS festframe_leads (
   visitor_id uuid PRIMARY KEY,
   email text NOT NULL,
   country_code char(2) CHECK (country_code IS NULL OR country_code ~ '^[A-Z]{2}$'),
+  marketing_consent boolean NOT NULL DEFAULT false,
+  marketing_consent_at timestamptz,
+  privacy_version text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE festframe_leads ADD COLUMN IF NOT EXISTS marketing_consent boolean NOT NULL DEFAULT false;
+ALTER TABLE festframe_leads ADD COLUMN IF NOT EXISTS marketing_consent_at timestamptz;
+ALTER TABLE festframe_leads ADD COLUMN IF NOT EXISTS privacy_version text;
 
 CREATE TABLE IF NOT EXISTS festframe_email_plans (
   email_hash char(64) PRIMARY KEY CHECK (email_hash ~ '^[0-9a-f]{64}$'),
