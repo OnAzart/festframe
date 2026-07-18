@@ -595,7 +595,7 @@ function App() {
     })
     const items = clusters.flatMap((cluster) => {
       const laneEnds: number[] = []
-      const maxColumns = 3
+      const maxColumns = 4
       const placed = cluster.map((performance) => {
         const start = localDate(performance.startTime).getTime()
         const end = localDate(performance.endTime).getTime()
