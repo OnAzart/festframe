@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:e2e": "node e2e_smoke.mjs",
+    "analytics:report": "node scripts/analytics-report.mjs",
     "check:api": "tsc -p tsconfig.api.json",
     "verify": "npm run lint && npm run check:api && npm run build && npm run test:e2e"
   },

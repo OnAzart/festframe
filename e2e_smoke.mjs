@@ -35,6 +35,11 @@ await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ headless: true })
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true })
 const page = await context.newPage()
+const analyticsEvents = []
+await page.route('**/api/events', async (route) => {
+  analyticsEvents.push(route.request().postDataJSON())
+  await route.fulfill({ status: 202, contentType: 'application/json', body: '{"accepted":true}' })
+})
 await page.goto(baseUrl, { waitUntil: 'networkidle' })
 if (await page.title() !== 'Tomorrowland 2026 Planner | FestFrame') throw new Error('SEO title is missing')
 if (await page.locator('link[rel="canonical"]').getAttribute('href') !== 'https://festframe.vercel.app/') throw new Error('Canonical URL is missing')
@@ -46,6 +51,9 @@ for (const label of ['Privacy', 'Terms']) {
 await page.getByLabel('Your email').fill('tester@example.com')
 await page.getByRole('button', { name: 'Plan My Fest' }).click()
 await page.getByRole('heading', { name: 'Build your day' }).waitFor()
+const w2Button = page.getByRole('button', { name: /W2/ })
+if (!(await w2Button.getAttribute('class'))?.includes('active')) throw new Error('W2 is not the default weekend for a new visitor')
+await page.getByRole('button', { name: /W1/ }).click()
 const stageOptions = page.locator('.stage-select option')
 if (await stageOptions.nth(1).textContent() !== 'MAINSTAGE') throw new Error('Mainstage was not first')
 if (await stageOptions.nth(2).textContent() !== 'FREEDOM BY BUD') throw new Error('Freedom was not second')
@@ -178,5 +186,11 @@ for (const file of ['consciousness-desert-timeline.png', 'botanical-consciousnes
 const calendar = await readFile(`${output}/plan.ics`, 'utf8')
 if (!/DTSTART:\d{8}T\d{6}Z/.test(calendar)) throw new Error('Calendar export is missing a valid UTC event start')
 if (!calendar.endsWith('END:VCALENDAR\r\n')) throw new Error('Calendar export is missing its final line ending')
+const trackedEventNames = new Set(analyticsEvents.map((event) => event.eventName))
+for (const eventName of ['planner_opened', 'first_artist_selected', 'five_artists_selected', 'calendar_exported', 'pdf_exported', 'wallpaper_exported']) {
+  if (!trackedEventNames.has(eventName)) throw new Error(`${eventName} analytics event is missing`)
+}
+const trackedVisitorIds = new Set(analyticsEvents.map((event) => event.visitorId))
+if (trackedVisitorIds.size !== 1 || !/^[0-9a-f-]{36}$/i.test([...trackedVisitorIds][0])) throw new Error('Analytics visitor ID is not persistent')
 await browser.close()
 ownedServer?.kill('SIGTERM')

@@ -32,7 +32,7 @@ The export menu includes the `Consciousness` and `Botanical` lock-screen backgro
 
 ## Data
 
-`public/data/` contains static snapshots of the official 2026 W1/W2 timetable captured on 15 July 2026, including published artist-image URLs. The planner does not scrape the timetable at runtime. Update those files manually when official set times change, and always verify the official timetable before attending.
+`public/data/` contains static snapshots of the official 2026 timetable, including published artist-image URLs. W2 was refreshed from the official Tomorrowland CDN on 22 July 2026. The planner does not scrape the timetable at runtime. Update those files manually when official set times change, and always verify the official timetable before attending.
 
 ## Privacy and login
 
@@ -45,3 +45,13 @@ Public [Privacy](https://festframe.vercel.app/privacy.html) and [Terms](https://
 ## Growth instrumentation
 
 FestFrame records a small first-party activation funnel in Neon and uses Vercel Web Analytics for aggregate traffic. `planner_opened` stores safe UTM values and the referring hostname; it does not receive email or artist names. Wallpaper downloads and native mobile shares are separate events, so the branded export loop can be measured directly.
+
+Generate an aggregate report without printing email addresses:
+
+```bash
+npm run analytics:report -- 2026-07-15
+```
+
+The report prints aggregate acquisition, activation, export, retention, and plan-quality metrics without printing email addresses. See [`W2_GROWTH_PLAN.md`](./W2_GROWTH_PLAN.md) for the W2 campaign targets, channel plan, UTM convention, and launch copy.
+
+From the W2 instrumentation release onward, product events include a persistent anonymous browser ID, correct selection milestones, plan restores, and separate calendar/PDF exports. Historical rows keep their session-level identifiers.

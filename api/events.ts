@@ -6,9 +6,12 @@ const allowedEvents = new Set([
   'planner_opened',
   'signup_completed',
   'email_submitted',
+  'plan_restored',
   'first_artist_selected',
   'five_artists_selected',
   'timeline_viewed',
+  'calendar_exported',
+  'pdf_exported',
   'wallpaper_exported',
   'wallpaper_shared',
   'support_opened',
@@ -16,6 +19,7 @@ const allowedEvents = new Set([
 
 type EventPayload = {
   sessionId?: unknown
+  visitorId?: unknown
   eventName?: unknown
   festivalDate?: unknown
   weekend?: unknown
@@ -51,6 +55,7 @@ export default {
     if (!isUuid(body.sessionId) || typeof body.eventName !== 'string' || !allowedEvents.has(body.eventName)) {
       return json({ error: 'Invalid event' }, 400)
     }
+    if (body.visitorId !== undefined && !isUuid(body.visitorId)) return json({ error: 'Invalid visitor' }, 400)
     if (body.weekend !== undefined && body.weekend !== 'w1' && body.weekend !== 'w2') return json({ error: 'Invalid weekend' }, 400)
     if (body.festivalDate !== undefined && (typeof body.festivalDate !== 'string' || !/^2026-07-\d{2}$/.test(body.festivalDate))) return json({ error: 'Invalid date' }, 400)
 
@@ -60,8 +65,8 @@ export default {
 
     try {
       const sql = neon(process.env.DATABASE_URL)
-      await sql`INSERT INTO product_events (session_id, event_name, festival_date, weekend, country_code, properties)
-        VALUES (${body.sessionId}::uuid, ${body.eventName}, ${body.festivalDate || null}::date, ${body.weekend || null}, ${countryCode(request)}, ${propertiesJson}::jsonb)`
+      await sql`INSERT INTO product_events (session_id, visitor_id, event_name, festival_date, weekend, country_code, properties)
+        VALUES (${body.sessionId}::uuid, ${body.visitorId || null}::uuid, ${body.eventName}, ${body.festivalDate || null}::date, ${body.weekend || null}, ${countryCode(request)}, ${propertiesJson}::jsonb)`
       return json({ accepted: true }, 202)
     } catch {
       return json({ error: 'Event could not be stored' }, 503)

@@ -24,7 +24,7 @@ import './App.css'
 type Priority = 'critical' | 'want' | 'like'
 type WallpaperTheme = 'consciousness-desert' | 'botanical-consciousness'
 type ViewMode = 'board' | 'timeline' | 'schedule'
-type AnalyticsEvent = 'planner_opened' | 'signup_completed' | 'email_submitted' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'wallpaper_exported' | 'wallpaper_shared' | 'support_opened'
+type AnalyticsEvent = 'planner_opened' | 'signup_completed' | 'email_submitted' | 'plan_restored' | 'first_artist_selected' | 'five_artists_selected' | 'timeline_viewed' | 'calendar_exported' | 'pdf_exported' | 'wallpaper_exported' | 'wallpaper_shared' | 'support_opened'
 
 type FontDocument = Document & {
   fonts?: {
@@ -106,12 +106,15 @@ const storageKeys = {
 }
 const SUPPORT_URL = (import.meta.env.VITE_SUPPORT_URL as string | undefined)?.trim() || 'https://ko-fi.com/onazart'
 const analyticsSessionId = crypto.randomUUID()
+const storedVisitorId = localStorage.getItem(storageKeys.leadId)
+const analyticsVisitorId = storedVisitorId && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(storedVisitorId) ? storedVisitorId : crypto.randomUUID()
+localStorage.setItem(storageKeys.leadId, analyticsVisitorId)
 
 function trackEvent(eventName: AnalyticsEvent, context: { festivalDate?: string; weekend?: 'w1' | 'w2'; properties?: Record<string, string | number | boolean> } = {}) {
   void fetch('/api/events', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId: analyticsSessionId, eventName, ...context }),
+    body: JSON.stringify({ sessionId: analyticsSessionId, visitorId: analyticsVisitorId, eventName, ...context }),
     keepalive: true,
   }).catch(() => undefined)
 }
@@ -318,7 +321,7 @@ function App() {
   const [cloudReadyEmail, setCloudReadyEmail] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [marketingConsent, setMarketingConsent] = useState(false)
-  const [weekend, setWeekend] = useState<'w1' | 'w2'>(() => (localStorage.getItem(storageKeys.weekend) as 'w1' | 'w2') || 'w1')
+  const [weekend, setWeekend] = useState<'w1' | 'w2'>(() => (localStorage.getItem(storageKeys.weekend) as 'w1' | 'w2') || 'w2')
   const [data, setData] = useState<FestivalData | null>(null)
   const [priorities, setPriorities] = useState<Record<string, Priority>>(() => {
     try {
@@ -391,12 +394,13 @@ function App() {
           setPriorities(plan.priorities)
           setWeekend(plan.weekend)
           setWallpaperTheme(plan.wallpaperTheme)
+          trackEvent('plan_restored', { weekend: plan.weekend, properties: { selectedCount: Object.keys(plan.priorities).length } })
           setToast('Your saved plan is back.')
         } else {
           const previousOwner = localStorage.getItem(storageKeys.planOwner)
           if (previousOwner && previousOwner !== 'guest' && previousOwner !== profileEmail) {
             setPriorities({})
-            setWeekend('w1')
+            setWeekend('w2')
             setWallpaperTheme('botanical-consciousness')
           }
         }
@@ -628,22 +632,22 @@ function App() {
   const activeDateLabel = activeDate ? dateFormatter.format(new Date(`${activeDate}T12:00:00`)) : ''
 
   function choosePriority(id: string, priority: Priority) {
-    setPriorities((current) => {
-      if (current[id] === priority) {
-        const next = { ...current }
-        delete next[id]
-        return next
-      }
-      return { ...current, [id]: priority }
-    })
+    const currentPriority = priorities[id]
+    if (currentPriority === priority) {
+      const next = { ...priorities }
+      delete next[id]
+      setPriorities(next)
+      return
+    }
+    const selectedCount = Object.keys(priorities).length
+    setPriorities({ ...priorities, [id]: priority })
+    if (!currentPriority && selectedCount === 0) trackEvent('first_artist_selected', { festivalDate: activeDate, weekend })
+    if (!currentPriority && selectedCount === 4) trackEvent('five_artists_selected', { festivalDate: activeDate, weekend })
   }
 
   function chooseArtist(id: string) {
     if (priorities[id]) return
-    const selectedCount = Object.keys(priorities).length
     choosePriority(id, 'want')
-    if (selectedCount === 0) trackEvent('first_artist_selected', { festivalDate: activeDate, weekend })
-    if (selectedCount === 4) trackEvent('five_artists_selected', { festivalDate: activeDate, weekend })
     if (!localStorage.getItem('festframe-priority-hint-seen')) {
       localStorage.setItem('festframe-priority-hint-seen', 'true')
       setToast('Added to Want. Use Must, Want, or Maybe to change it.')
@@ -706,6 +710,7 @@ function App() {
     const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FestFrame//Festival plan//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:FestFrame festival plan', ...events.flatMap((event) => event.split('\r\n')), 'END:VCALENDAR']
     const body = `${lines.flatMap(foldIcsLine).join('\r\n')}\r\n`
     downloadBlob(new Blob([body], { type: 'text/calendar;charset=utf-8' }), `festframe-${activeDate}.ics`)
+    trackEvent('calendar_exported', { festivalDate: activeDate, weekend, properties: { selectedCount: selectedDaySets.length } })
     setToast('Calendar file downloaded.')
   }
 
@@ -748,6 +753,7 @@ function App() {
     pdf.setFontSize(9)
     pdf.text('Made with FestFrame · Check the official timetable for live changes.', 42, 812)
     pdf.save(`festframe-${activeDate}.pdf`)
+    trackEvent('pdf_exported', { festivalDate: activeDate, weekend, properties: { selectedCount: selectedDaySets.length } })
     setToast('PDF downloaded.')
   }
 
@@ -974,7 +980,7 @@ function App() {
             <div className="route-list">
               {selectedDaySets.length ? selectedDaySets.map((performance) => <div className="route-item" key={performance.id} style={{ '--stage-color': stageColor(performance.stage.name) } as React.CSSProperties}><span className="route-dot" style={{ background: stageColor(performance.stage.name) }} /><div><time>{timeFormatter.format(localDate(performance.startTime))}</time><strong>{eventLabel(performance)}</strong><small>{performance.stage.name}</small></div><button className="remove-set" onClick={() => { const next = { ...priorities }; delete next[performance.id]; setPriorities(next) }} title={`Remove ${eventLabel(performance)} from your route`} aria-label={`Remove ${eventLabel(performance)} from your route`}><X size={15} /></button></div>) : <div className="empty-route"><Sparkles size={22} /><strong>Your route starts here.</strong><p>Choose the acts that matter. Your route builds itself in time order.</p></div>}
             </div>
-            <p className="official-note">Times are based on the 15 July timetable snapshot. Check official updates before you go.</p>
+            <p className="official-note">Times are based on the 22 July timetable snapshot. Check official updates before you go.</p>
           </aside>
         </section>
       </>}
