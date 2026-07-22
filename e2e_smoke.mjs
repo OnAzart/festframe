@@ -36,8 +36,13 @@ const browser = await chromium.launch({ headless: true })
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true })
 const page = await context.newPage()
 const analyticsEvents = []
+const leadRequests = []
 await page.route('**/api/events', async (route) => {
   analyticsEvents.push(route.request().postDataJSON())
+  await route.fulfill({ status: 202, contentType: 'application/json', body: '{"accepted":true}' })
+})
+await page.route('**/api/leads', async (route) => {
+  leadRequests.push(route.request().postDataJSON())
   await route.fulfill({ status: 202, contentType: 'application/json', body: '{"accepted":true}' })
 })
 await page.goto(baseUrl, { waitUntil: 'networkidle' })
@@ -49,8 +54,12 @@ for (const label of ['Privacy', 'Terms']) {
   if (!(await page.getByRole('link', { name: label }).first().isVisible())) throw new Error(`${label} link is missing before planner entry`)
 }
 await page.getByLabel('Your email').fill('tester@example.com')
+const marketingConsent = page.getByLabel('I’d like occasional FestFrame product updates by email. Optional.')
+if (await marketingConsent.isChecked()) throw new Error('Marketing consent must be unchecked by default')
+await marketingConsent.check()
 await page.getByRole('button', { name: 'Plan My Fest' }).click()
 await page.getByRole('heading', { name: 'Build your day' }).waitFor()
+if (leadRequests.length !== 1 || leadRequests[0].marketingConsent !== true) throw new Error('Explicit marketing consent was not sent to the lead endpoint')
 const w2Button = page.getByRole('button', { name: /W2/ })
 if (!(await w2Button.getAttribute('class'))?.includes('active')) throw new Error('W2 is not the default weekend for a new visitor')
 await page.getByRole('button', { name: /W1/ }).click()

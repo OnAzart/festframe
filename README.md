@@ -52,6 +52,6 @@ Generate an aggregate report without printing email addresses:
 npm run analytics:report -- 2026-07-15
 ```
 
-The report prints aggregate acquisition, activation, export, retention, and plan-quality metrics without printing email addresses. See [`W2_GROWTH_PLAN.md`](./W2_GROWTH_PLAN.md) for the W2 campaign targets, channel plan, UTM convention, and launch copy.
+The report prints aggregate acquisition, activation, export, retention, and plan-quality metrics without printing email addresses. The current low-effort launch plan, channel copy, video workflow, compliance notes, and monetization options live in [`marketing/README.md`](./marketing/README.md).
 
 From the W2 instrumentation release onward, product events include a persistent anonymous browser ID, correct selection milestones, plan restores, and separate calendar/PDF exports. Historical rows keep their session-level identifiers.

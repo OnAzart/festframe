@@ -1,5 +1,7 @@
 # FestFrame W2 growth plan
 
+> Archived detailed working plan. Use [`marketing/README.md`](./marketing/README.md) as the current execution index and the files under `marketing/posts/` as publish-ready copy.
+
 Last updated: 22 July 2026
 
 ## What W1 proved

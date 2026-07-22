@@ -2,6 +2,8 @@
 
 import { neon } from '@neondatabase/serverless'
 
+const PRIVACY_VERSION = '2026-07-22'
+
 type LeadPayload = {
   visitorId?: unknown
   email?: unknown
@@ -38,7 +40,7 @@ export default {
     try {
       const sql = neon(process.env.AUTHDB_DATABASE_URL)
       await sql`INSERT INTO festframe_leads (visitor_id, email, country_code, marketing_consent, marketing_consent_at, privacy_version)
-        VALUES (${body.visitorId}::uuid, ${email}, ${countryCode(request)}, ${marketingConsent}, ${marketingConsent ? new Date().toISOString() : null}::timestamptz, ${'2026-07-18'})
+        VALUES (${body.visitorId}::uuid, ${email}, ${countryCode(request)}, ${marketingConsent}, ${marketingConsent ? new Date().toISOString() : null}::timestamptz, ${PRIVACY_VERSION})
         ON CONFLICT (visitor_id) DO UPDATE SET
           email = EXCLUDED.email,
           country_code = COALESCE(festframe_leads.country_code, EXCLUDED.country_code),
