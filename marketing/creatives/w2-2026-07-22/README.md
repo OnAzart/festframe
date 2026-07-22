@@ -4,7 +4,16 @@ Generated from the real FestFrame W2 Friday UI on 22 July 2026.
 
 ## Post now: Reddit gallery
 
-Upload in this order:
+For the direct founder post, use the clean product screenshots in `reddit-app-screenshots/`:
+
+1. `01-lock-screen.png` — the finished W2 route on a phone.
+2. `02-select-artists.png` — real Board selection with artist images.
+3. `03-my-schedule.png` — selected stages and clashes.
+4. `04-export-options.png` — wallpaper, calendar, PDF, and sharing.
+
+These are the recommended images for the title `W2 starts tomorrow — I made a free planner that exports your route as a lock-screen wallpaper`.
+
+The more designed alternative is:
 
 1. `reddit-gallery-01-lockscreen.png` — communicates the outcome immediately.
 2. `reddit-gallery-02-priorities.png` — explains Must, Want, and Maybe.

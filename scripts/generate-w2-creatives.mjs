@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { chromium } from 'playwright'
@@ -227,6 +227,17 @@ async function renderVideos() {
   }
 }
 
+async function prepareRedditScreenshots() {
+  const redditOutput = path.join(output, 'reddit-app-screenshots')
+  await mkdir(redditOutput, { recursive: true })
+  await Promise.all([
+    copyFile(path.join(output, 'lockscreen-w2-friday.png'), path.join(redditOutput, '01-lock-screen.png')),
+    copyFile(path.join(sourceOutput, 'product-board.png'), path.join(redditOutput, '02-select-artists.png')),
+    copyFile(path.join(sourceOutput, 'product-schedule.png'), path.join(redditOutput, '03-my-schedule.png')),
+    copyFile(path.join(sourceOutput, 'product-export.png'), path.join(redditOutput, '04-export-options.png')),
+  ])
+}
+
 await mkdir(sourceOutput, { recursive: true })
 await startServer()
 const browser = await chromium.launch({ headless: true })
@@ -255,4 +266,5 @@ try {
 }
 
 await renderVideos()
+await prepareRedditScreenshots()
 console.log(`Creative pack generated at ${output}`)
