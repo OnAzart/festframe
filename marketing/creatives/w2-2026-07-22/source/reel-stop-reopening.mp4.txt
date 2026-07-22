@@ -1,0 +1,11 @@
+file '/Users/nazartutyn/mine/OTHER/tmrl_codex/marketing/creatives/w2-2026-07-22/video-hook-stop.png'
+duration 1.5
+file '/Users/nazartutyn/mine/OTHER/tmrl_codex/marketing/creatives/w2-2026-07-22/video-board.png'
+duration 2.1
+file '/Users/nazartutyn/mine/OTHER/tmrl_codex/marketing/creatives/w2-2026-07-22/video-schedule.png'
+duration 1.8
+file '/Users/nazartutyn/mine/OTHER/tmrl_codex/marketing/creatives/w2-2026-07-22/video-export.png'
+duration 1.8
+file '/Users/nazartutyn/mine/OTHER/tmrl_codex/marketing/creatives/w2-2026-07-22/video-cta.png'
+duration 2.2
+file '/Users/nazartutyn/mine/OTHER/tmrl_codex/marketing/creatives/w2-2026-07-22/video-cta.png'

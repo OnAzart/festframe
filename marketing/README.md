@@ -2,6 +2,8 @@
 
 This is the current execution plan. It is intentionally small because W2 starts on 24 July 2026 and one person must be able to run it without a production team.
 
+Ready-to-publish assets: [W2 creative pack](./creatives/w2-2026-07-22/README.md). It includes a three-image Reddit gallery, two 9:16 MP4 hook variants, Story frames, a lock-screen mockup, and the raw W2 wallpaper export.
+
 ## Goal
 
 Generate qualified W2 traffic and learn which message produces completed exports. The stretch target is 2,000 visitors, but the operating target is simpler:
