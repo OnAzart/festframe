@@ -173,14 +173,13 @@ function eventLabel(performance: Performance) {
 }
 
 function wallpaperEventLabel(performance: Performance) {
-  const primaryArtist = performance.artists[0]?.name?.trim()
   const raw = eventLabel(performance).trim()
   const simplified = raw
     .replace(/\s+(presents|pres\.?|live|dj set)\b.*$/i, '')
     .replace(/\s+feat\..*$/i, '')
     .trim()
 
-  let label = simplified || primaryArtist || raw
+  let label = simplified || raw
 
   if (/\s+b2b\s+/i.test(label) && label.length > 18) {
     const [left, right] = label.split(/\s+b2b\s+/i)
@@ -191,10 +190,6 @@ function wallpaperEventLabel(performance: Performance) {
       .join('')
       .toUpperCase()
     label = rightShort ? `${left} b2b ${rightShort}` : left
-  }
-
-  if (primaryArtist && label.length > 22 && primaryArtist.length < label.length) {
-    label = primaryArtist
   }
 
   return label.length > 40 ? `${label.slice(0, 37).trimEnd()}...` : label
