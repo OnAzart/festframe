@@ -164,8 +164,8 @@ function festivalDate(performance: Performance) {
   return previousDay.toISOString().slice(0, 10)
 }
 
-function getArtistImage(_performance: Performance) {
-  return null
+function getArtistImage(performance: Performance) {
+  return performance.artists.find((artist) => artist.image)?.image
 }
 
 function eventLabel(performance: Performance) {

@@ -84,7 +84,7 @@ await page.locator('.board-card').first().locator('.priority-control button').fi
 await page.getByText('2 saved sets overlap').waitFor()
 await page.getByPlaceholder('Search artists or stages').fill('')
 await page.locator('.board-card').first().waitFor()
-await page.locator('.board-card .board-image > span').first().waitFor()
+await page.locator('.board-card img').first().waitFor()
 if (await page.locator('.board-stage-heading h3').first().textContent() !== 'MAINSTAGE') throw new Error('Board Mainstage group was not first')
 if (await page.locator('.board-stage-heading h3').nth(1).textContent() !== 'FREEDOM BY BUD') throw new Error('Board Freedom group was not second')
 await page.screenshot({ path: `${output}/board.png`, fullPage: true })
