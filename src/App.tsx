@@ -183,12 +183,10 @@ function wallpaperEventLabel(performance: Performance) {
 
   if (/\s+b2b\s+/i.test(label) && label.length > 18) {
     const [left, right] = label.split(/\s+b2b\s+/i)
-    const rightShort = right
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase()
+    const rightWords = right.split(/\s+/).filter(Boolean)
+    const rightShort = rightWords.length > 1
+      ? rightWords.map((word) => word[0]).join('').toUpperCase()
+      : right
     label = rightShort ? `${left} b2b ${rightShort}` : left
   }
 
